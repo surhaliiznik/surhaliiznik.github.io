@@ -32,6 +32,9 @@ const SUPABASE_KEY =
 const STORAGE_BUCKET =
     "category-images";
 
+const CATEGORY_COVERS_PATH =
+    "category-covers";
+
 
 /* ==========================================================
    SUPABASE BAŞLAT
@@ -1369,6 +1372,8 @@ async function adminPanelBaslat() {
 
     const imageUploadMessage = document.getElementById("imageUploadMessage");
 
+    const categoryCoverCheckbox = document.getElementById("asCategoryCover");
+
 
     /* ======================================================
        KATEGORİ DEĞİŞTİ
@@ -1379,6 +1384,20 @@ async function adminPanelBaslat() {
         imageCategory.addEventListener("change", async function () {
 
             await resimUrunleriniHazirla();
+        });
+    }
+
+    if (categoryCoverCheckbox && imageProduct) {
+
+        categoryCoverCheckbox.addEventListener("change", function () {
+
+            imageProduct.disabled = categoryCoverCheckbox.checked;
+
+            if (categoryCoverCheckbox.checked) {
+                imageProduct.value = "";
+            } else if (imageCategory && imageCategory.value) {
+                resimUrunleriniHazirla();
+            }
         });
     }
 
@@ -1404,6 +1423,19 @@ async function adminPanelBaslat() {
 
 
         imageProduct.disabled = true;
+
+
+        if (categoryCoverCheckbox && categoryCoverCheckbox.checked) {
+
+            imageProduct.innerHTML = `
+
+                <option value="">
+                    Kategori kapağı seçildi
+                </option>
+            `;
+
+            return;
+        }
 
 
         if (!category) {
@@ -1605,7 +1637,7 @@ async function adminPanelBaslat() {
             }
 
 
-            const asCategoryCover = document.getElementById('asCategoryCover')?.checked || false;
+            const asCategoryCover = categoryCoverCheckbox?.checked || false;
 
             if (!asCategoryCover && !productId) {
 
@@ -1682,7 +1714,7 @@ async function adminPanelBaslat() {
                 if (asCategoryCover) {
 
                     // category cover path
-                    filePath = "category-covers/" + storageCategory + "/" + guvenliDosyaAdi(file.name);
+                    filePath = CATEGORY_COVERS_PATH + "/" + storageCategory + "/" + guvenliDosyaAdi(file.name);
 
                 } else {
 

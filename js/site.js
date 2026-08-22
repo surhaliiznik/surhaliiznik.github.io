@@ -15,6 +15,10 @@ const WHATSAPP_NUMBER = "905396369095";
 
 const STORAGE_BUCKET = "category-images";
 
+const CATEGORY_COVERS_PATH = "category-covers/";
+
+const HERO_IMAGE_PATH = "assets/images/hero-ana-sayfa-magaza.png";
+
 const KATEGORILER = [
     "Halılar",
     "Klasik Yolluklar",
@@ -430,8 +434,12 @@ async function urunleriGetir() {
     (images || []).forEach(
         function (image) {
 
-            if (!image.product_id) {
-                // treat as category cover if category present
+            const isCategoryCover =
+                typeof image.image_path === "string" &&
+                image.image_path.startsWith(CATEGORY_COVERS_PATH);
+
+            if (isCategoryCover || !image.product_id) {
+
                 if (image.category) {
                     if (!coversMap[image.category]) {
                         coversMap[image.category] = image;
@@ -961,6 +969,46 @@ function kategoriMenusuOlustur(coversMap) {
 
 
 /* ==========================================================
+   ANA SAYFA KATEGORİ KAPAKLARI
+   ========================================================== */
+
+function kategoriKapaklariniUygula(coversMap) {
+
+    document
+        .querySelectorAll(".category-card[data-category]")
+        .forEach(
+            function (card) {
+
+                const category = card.dataset.category;
+                const cover = coversMap && coversMap[category];
+                const coverUrl = cover ? resimUrlHazirla(cover) : "";
+                const coverElement = card.querySelector(".category-cover");
+                const image = coverElement && coverElement.querySelector("img");
+
+                if (coverUrl && image) {
+                    image.src = coverUrl;
+                    image.alt = category + " kapak";
+                    coverElement.classList.add("has-image");
+                } else if (coverElement && image) {
+                    image.removeAttribute("src");
+                    coverElement.classList.remove("has-image");
+                }
+            }
+        );
+}
+
+
+function heroGorseliniUygula() {
+
+    const heroMedia = document.querySelector("[data-hero-media]");
+
+    if (heroMedia) {
+        heroMedia.style.backgroundImage = `url("${HERO_IMAGE_PATH}")`;
+    }
+}
+
+
+/* ==========================================================
    ÜRÜN KARTLARINDAKİ DETAY LİNKLERİ
    ========================================================== */
 
@@ -1024,6 +1072,7 @@ async function siteyiBaslat() {
 
         // kategoriMenusuOlustur(); -> move after fetching covers
         mobilMenuHazirla();
+        heroGorseliniUygula();
 
 
         /*
@@ -1074,6 +1123,7 @@ async function siteyiBaslat() {
          * KATEGORİ MENÜSÜ
          */
         kategoriMenusuOlustur(coversMap);
+        kategoriKapaklariniUygula(coversMap);
 
         /* ==================================================
          * ANA SAYFA
