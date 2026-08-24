@@ -342,28 +342,10 @@ async function urunleriGetir() {
        ÜRÜNLER
        ====================================================== */
 
-    const {
-        data: products,
-        error: productError
-    } =
-        await supabaseClient
-            .from("products")
-            .select(`
-                id,
-                name,
-                category,
-                size,
-                price,
-                description,
-                image_url,
-                is_active,
-                is_featured,
-                features,
-                sizes,
-                is_featured_badge,
-                badge_text,
-                created_at
-            `)
+    // YERİNE SADECE BUNU YAZIN:
+const { data: products, error } = await supabase
+  .from('products')
+  .select('*');
             .eq(
                 "is_active",
                 true
