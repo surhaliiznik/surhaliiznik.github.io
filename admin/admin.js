@@ -438,7 +438,9 @@ function loginSayfasiniBaslat() {
         passwordResetForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             const email = document.getElementById("resetEmail").value.trim();
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: "https://surhaliiznik.github.io/admin/login.html"
+            });
 
             if (error) {
                 mesajYaz(passwordResetMessage, error.message);
@@ -452,38 +454,21 @@ function loginSayfasiniBaslat() {
                 newPasswordForm.hidden = false;
             }
             if (passwordResetDescription) {
-                passwordResetDescription.textContent = "E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.";
+                passwordResetDescription.textContent = "E-postanıza gelen bağlantıya tıklayarak yeni şifrenizi belirleyin.";
             }
-            mesajYaz(passwordResetMessage, "6 haneli doğrulama kodu e-posta adresinize gönderildi.", true);
+            mesajYaz(passwordResetMessage, "Şifre yenileme bağlantısı e-posta adresinize gönderildi.", true);
         });
     }
 
     if (newPasswordForm) {
         newPasswordForm.addEventListener("submit", async function (event) {
             event.preventDefault();
-            const emailInput = document.getElementById("resetEmail");
-            const codeInput = document.getElementById("resetCode");
             const newPasswordInput = document.getElementById("newPassword");
             const newPassword = document.getElementById("newPassword").value;
             const confirmation = document.getElementById("newPasswordConfirm").value;
 
             if (newPassword !== confirmation) {
                 mesajYaz(newPasswordMessage, "Şifreler eşleşmiyor.");
-                return;
-            }
-
-            const { data, error } = await supabaseClient.auth.verifyOtp({
-                email: emailInput.value.trim(),
-                token: codeInput.value.trim(),
-                type: "recovery"
-            });
-
-            if (error || !data || !data.session) {
-                const verifyMessage = error
-                    ? error.message
-                    : "Doğrulama başarısız oldu: geçerli bir oturum oluşturulamadı.";
-                console.error("Şifre sıfırlama OTP doğrulama hatası:", error || verifyMessage);
-                mesajYaz(newPasswordMessage, "Girdiğiniz kod hatalı veya süresi dolmuş.");
                 return;
             }
 
