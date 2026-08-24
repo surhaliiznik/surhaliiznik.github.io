@@ -727,18 +727,12 @@ function katalogOlustur(
 
             container.innerHTML = `
 
-                <div class="empty-state">
-
-                    <h2>
-                        Bu kategoride henüz ürün yok
-                    </h2>
-
-                    <p>
-                        Çok yakında yeni ürünler eklenecek.
-                    </p>
-
-                </div>
-
+                container.innerHTML = `
+  <div class="empty-state">
+    <h2>Bu kategoride henüz ürün yok</h2>
+    <p>Çok yakında yeni ürünler eklenecek.</p>
+  </div>
+`;
             `;
 
             return;
