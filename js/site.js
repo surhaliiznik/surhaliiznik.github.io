@@ -518,20 +518,35 @@ function oneCikanUrunleriOlustur(
         products.length === 0
     ) {
 
-        container.innerHTML = `
+        if (products && products.length > 0) {
+  container.innerHTML = products.map(product => {
+    const imageUrl = (product.image_url && product.image_url.trim() !== '') 
+      ? product.image_url 
+      : 'https://via.placeholder.com/400x300?text=Sur+Hali';
 
-            <div class="empty-state">
-
-                <h2>
-                    Koleksiyonlarımız hazırlanıyor
-                </h2>
-
-                <p>
-                    Çok yakında ürünlerimizi
-                    burada görebileceksiniz.
-                </p>
-
-            </div>
+    return `
+      <div class="product-card" data-id="${product.id}">
+        <div class="product-image">
+          <img src="${imageUrl}" alt="${product.name || 'Halı Ürünü'}" loading="lazy">
+          ${product.badge_text ? `<span class="badge">${product.badge_text}</span>` : ''}
+        </div>
+        <div class="product-info">
+          <h3>${product.name || 'İsimsiz Ürün'}</h3>
+          <p class="category">${product.category || ''}</p>
+          <p class="price">${product.price ? product.price + ' TL' : 'Fiyat Sorunuz'}</p>
+          <button class="add-to-cart-btn">Sepete Ekle</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+} else {
+  container.innerHTML = `
+    <div class="empty-state">
+      <h2>Koleksiyonlarımız hazırlanıyor</h2>
+      <p>Çok yakında ürünlerimizi burada görebileceksiniz.</p>
+    </div>
+  `;
+}
 
         `;
 
