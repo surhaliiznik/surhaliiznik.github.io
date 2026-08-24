@@ -357,6 +357,7 @@ async function urunleriGetir() {
                 description,
                 image_url,
                 is_active,
+                is_featured,
                 created_at
             `)
             .eq(
@@ -507,6 +508,24 @@ function oneCikanUrunleriOlustur(
 
     container.innerHTML = "";
 
+    const featuredProducts =
+        (products || []).filter(function (product) {
+            return product.is_featured === true;
+        });
+
+    const featuredSection = container.closest(".featured-section");
+
+    if (featuredProducts.length === 0) {
+        if (featuredSection) {
+            featuredSection.hidden = true;
+        }
+        return;
+    }
+
+    if (featuredSection) {
+        featuredSection.hidden = false;
+    }
+
 
     if (
         !products ||
@@ -535,7 +554,7 @@ function oneCikanUrunleriOlustur(
 
 
     container.innerHTML =
-        products
+        featuredProducts
             .map(
                 function (product) {
 
@@ -551,7 +570,7 @@ function oneCikanUrunleriOlustur(
 
     console.log(
         "Ana sayfada " +
-        products.length +
+        featuredProducts.length +
         " ürün gösterildi."
     );
 }

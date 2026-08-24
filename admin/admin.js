@@ -671,6 +671,9 @@ async function adminPanelBaslat() {
     const activeElement = document.getElementById("productActive");
 
 
+    const featuredElement = document.getElementById("productFeatured");
+
+
     /* ======================================================
        ÜRÜN FORMUNU AÇ
        ====================================================== */
@@ -736,6 +739,12 @@ async function adminPanelBaslat() {
             if (activeElement) {
 
                 activeElement.value = String(product.is_active !== false);
+            }
+
+
+            if (featuredElement) {
+
+                featuredElement.checked = product.is_featured === true;
             }
 
         } else {
@@ -853,6 +862,9 @@ async function adminPanelBaslat() {
             const isActive = activeElement ? activeElement.value === "true" : true;
 
 
+            const isFeatured = featuredElement ? featuredElement.checked : false;
+
+
             mesajTemizle(productFormMessage);
 
 
@@ -901,7 +913,9 @@ async function adminPanelBaslat() {
 
                 description: description || null,
 
-                is_active: isActive
+                is_active: isActive,
+
+                is_featured: isFeatured
             };
 
 
@@ -1083,6 +1097,11 @@ async function adminPanelBaslat() {
                                             ${product.is_active ? "Aktif" : "Pasif"}
                                         </p>
 
+                                        <p>
+                                            <strong>Vitrin:</strong>
+                                            ${product.is_featured ? "Açık" : "Kapalı"}
+                                        </p>
+
                                     </div>
 
 
@@ -1108,6 +1127,24 @@ async function adminPanelBaslat() {
                                             "
                                         >
                                             Düzenle
+                                        </button>
+
+
+                                        <button
+                                            type="button"
+                                            class="toggle-featured-button"
+                                            data-id="${escapeHTML(product.id)}"
+                                            data-featured="${product.is_featured ? "true" : "false"}"
+                                            style="
+                                                padding:8px 12px;
+                                                cursor:pointer;
+                                                color:#1c1917;
+                                                border:1px solid #c5a880;
+                                                background:${product.is_featured ? "#d4af37" : "transparent"};
+                                                border-radius:6px;
+                                            "
+                                        >
+                                            ${product.is_featured ? "Vitrinden Çıkar" : "Vitrine Al"}
                                         </button>
 
 
@@ -1156,6 +1193,38 @@ async function adminPanelBaslat() {
 
 
                     urunFormunuAc(data);
+                });
+            });
+
+
+            /* ==================================================
+               VİTRİN DURUMUNU DEĞİŞTİR
+               ================================================== */
+
+            productList.querySelectorAll(".toggle-featured-button").forEach(function (button) {
+                button.addEventListener("click", async function () {
+                    const id = button.dataset.id;
+                    const nextValue = button.dataset.featured !== "true";
+
+                    button.disabled = true;
+
+                    try {
+                        const { error } = await supabaseClient
+                            .from("products")
+                            .update({ is_featured: nextValue })
+                            .eq("id", id);
+
+                        if (error) {
+                            throw error;
+                        }
+
+                        await urunleriYukle();
+                        await dashboardYukle();
+                    } catch (error) {
+                        console.error("Vitrin durumu güncellenemedi:", error);
+                        alert(error.message || "Vitrin durumu güncellenemedi.");
+                        button.disabled = false;
+                    }
                 });
             });
 
