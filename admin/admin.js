@@ -439,29 +439,57 @@ function loginSayfasiniBaslat() {
     if (passwordResetForm) {
         passwordResetForm.addEventListener("submit", async function (event) {
             event.preventDefault();
-            const email = document.getElementById("resetEmail").value.trim();
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: "https://surhaliiznik.github.io/admin/login.html"
-            });
+            const emailInput = document.getElementById("resetEmail");
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(emailInput.value.trim());
 
             if (error) {
                 mesajYaz(passwordResetMessage, error.message);
                 return;
             }
 
-            mesajYaz(passwordResetMessage, "E-postanıza sıfırlama bağlantısı gönderildi.", true);
+            if (passwordResetForm) {
+                passwordResetForm.hidden = true;
+            }
+            if (newPasswordForm) {
+                newPasswordForm.hidden = false;
+            }
+            if (passwordResetDescription) {
+                passwordResetDescription.textContent = "E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.";
+            }
+            mesajYaz(passwordResetMessage, "6 haneli doğrulama kodu e-postanıza gönderildi.", true);
         });
     }
 
     if (newPasswordForm) {
         newPasswordForm.addEventListener("submit", async function (event) {
             event.preventDefault();
+            const emailInput = document.getElementById("resetEmail");
+            const codeInput = document.getElementById("resetCode");
             const newPasswordInput = document.getElementById("newPassword");
-            const newPassword = document.getElementById("newPassword").value;
+            const newPassword = newPasswordInput.value;
             const confirmation = document.getElementById("newPasswordConfirm").value;
 
             if (newPassword !== confirmation) {
                 mesajYaz(newPasswordMessage, "Şifreler eşleşmiyor.");
+                return;
+            }
+
+            const { data, error: verifyError } = await supabaseClient.auth.verifyOtp({
+                email: emailInput.value.trim(),
+                token: codeInput.value.trim(),
+                type: "recovery"
+            });
+
+            if (verifyError) {
+                console.error("Şifre sıfırlama doğrulama hatası:", verifyError);
+                mesajYaz(newPasswordMessage, verifyError.message);
+                return;
+            }
+
+            if (!data || !data.session) {
+                const sessionError = "Kurtarma oturumu oluşturulamadı.";
+                console.error("Şifre sıfırlama doğrulama hatası:", sessionError);
+                mesajYaz(newPasswordMessage, sessionError);
                 return;
             }
 
@@ -482,22 +510,6 @@ function loginSayfasiniBaslat() {
         });
     }
 
-    const recoveryUrl = new URL(window.location.href);
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const isRecoveryLink = recoveryUrl.searchParams.get("type") === "recovery" ||
-        hashParams.get("type") === "recovery" ||
-        recoveryUrl.searchParams.has("access_token") ||
-        hashParams.has("access_token");
-
-    if (isRecoveryLink) {
-        yeniSifreModunuAc();
-    }
-
-    supabaseClient.auth.onAuthStateChange(function (event) {
-        if (event === "PASSWORD_RECOVERY") {
-            yeniSifreModunuAc();
-        }
-    });
 }
 
 
