@@ -725,18 +725,13 @@ function katalogOlustur(
             filtrelenmisUrunler.length === 0
         ) {
 
-            container.innerHTML = `
-
-                container.innerHTML = `
+           container.innerHTML = `
   <div class="empty-state">
     <h2>Bu kategoride henüz ürün yok</h2>
     <p>Çok yakında yeni ürünler eklenecek.</p>
   </div>
 `;
-            `;
 
-            return;
-        }
 
 
         container.innerHTML =
