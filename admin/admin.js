@@ -55,13 +55,24 @@ function supabaseBaslat() {
     }
 
 
+    if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
+
+        console.error("Supabase URL veya anon key tanımsız.");
+
+        return false;
+    }
+
+
     try {
 
-        supabaseClient =
+        window.supabaseClient =
+            window.supabaseClient ||
             window.supabase.createClient(
                 window.SUPABASE_URL,
                 window.SUPABASE_ANON_KEY
             );
+
+        supabaseClient = window.supabaseClient;
 
 
         console.log(
