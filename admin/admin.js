@@ -443,12 +443,9 @@ function loginSayfasiniBaslat() {
         passwordResetForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             const emailInput = document.getElementById("resetEmail");
-            const { error } = await supabaseClient.auth.signInWithOtp({
-                email: emailInput.value.trim(),
-                options: {
-                    shouldCreateUser: false
-                }
-            });
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(
+                emailInput.value.trim()
+            );
 
             if (error) {
                 mesajYaz(passwordResetMessage, error.message);
@@ -469,7 +466,7 @@ function loginSayfasiniBaslat() {
             if (passwordResetDescription) {
                 passwordResetDescription.textContent = "E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.";
             }
-            mesajYaz(passwordResetMessage, "6 haneli kod mailinize gönderildi", true);
+            mesajYaz(passwordResetMessage, "6 haneli doğrulama kodu e-postanıza gönderildi", true);
         });
     }
 
@@ -490,7 +487,7 @@ function loginSayfasiniBaslat() {
             const { data, error: verifyError } = await supabaseClient.auth.verifyOtp({
                 email: emailInput.value.trim(),
                 token: codeInput.value.trim(),
-                type: "email"
+                type: "recovery"
             });
 
             if (verifyError) {
@@ -518,7 +515,7 @@ function loginSayfasiniBaslat() {
 
             mesajYaz(newPasswordMessage, "Şifreniz başarıyla güncellendi!", true);
             setTimeout(function () {
-                window.location.href = "index.html";
+                window.location.href = "login.html";
             }, 1200);
         });
     }
@@ -853,6 +850,51 @@ async function adminPanelBaslat() {
 
     const featuredElement = document.getElementById("productFeatured");
 
+    const badgeElement = document.getElementById("productBadgeText");
+    const badgeEnabledElement = document.getElementById("productFeaturedBadge");
+    const productSizesElement = document.getElementById("productSizes");
+    const addProductSizeButton = document.getElementById("addProductSizeButton");
+    const featureElements = {
+        point: document.getElementById("featurePoint"),
+        thickness: document.getElementById("featureThickness"),
+        weight: document.getElementById("featureWeight"),
+        material: document.getElementById("featureMaterial"),
+        color: document.getElementById("featureColor"),
+        robot: document.getElementById("featureRobot")
+    };
+
+    function ebatSatiriEkle(size = "", price = "") {
+        if (!productSizesElement) return;
+        const row = document.createElement("div");
+        row.className = "product-size-row";
+        row.innerHTML = `
+            <input type="text" class="size-value" placeholder="Ebat (160x230)" value="${escapeHTML(size)}">
+            <input type="number" class="size-price" min="0" step="0.01" placeholder="Fiyat" value="${escapeHTML(price)}">
+            <button type="button" class="remove-size-button" aria-label="Ebadi sil">Sil</button>
+        `;
+        row.querySelector(".remove-size-button").addEventListener("click", function () {
+            row.remove();
+        });
+        productSizesElement.appendChild(row);
+    }
+
+    function formEbatlariniDoldur(sizes) {
+        if (!productSizesElement) return;
+        productSizesElement.innerHTML = "";
+        let parsedSizes = sizes;
+        if (typeof parsedSizes === "string") {
+            try { parsedSizes = JSON.parse(parsedSizes); } catch (error) { parsedSizes = []; }
+        }
+        parsedSizes = Array.isArray(parsedSizes) ? parsedSizes : [];
+        parsedSizes.forEach(function (item) {
+            if (item && typeof item === "object") ebatSatiriEkle(item.size || item.label || "", item.price ?? "");
+        });
+    }
+
+    if (addProductSizeButton) addProductSizeButton.addEventListener("click", function () {
+        ebatSatiriEkle();
+    });
+
 
     /* ======================================================
        ÜRÜN FORMUNU AÇ
@@ -927,6 +969,17 @@ async function adminPanelBaslat() {
                 featuredElement.checked = product.is_featured === true;
             }
 
+            if (badgeElement) badgeElement.value = product.badge_text || "";
+            if (badgeEnabledElement) badgeEnabledElement.checked = product.is_featured_badge === true;
+            let productFeatures = product.features;
+            if (typeof productFeatures === "string") {
+                try { productFeatures = JSON.parse(productFeatures); } catch (error) { productFeatures = {}; }
+            }
+            Object.keys(featureElements).forEach(function (key) {
+                if (featureElements[key]) featureElements[key].value = productFeatures?.[key] ?? "";
+            });
+            formEbatlariniDoldur(product.sizes);
+
         } else {
 
             duzenlenenUrunId = null;
@@ -948,6 +1001,13 @@ async function adminPanelBaslat() {
 
                 saveProductButton.textContent = "Ürünü Kaydet";
             }
+
+            if (badgeElement) badgeElement.value = "";
+            if (badgeEnabledElement) badgeEnabledElement.checked = false;
+            Object.keys(featureElements).forEach(function (key) {
+                if (featureElements[key]) featureElements[key].value = "";
+            });
+            formEbatlariniDoldur([]);
         }
 
 
@@ -1043,6 +1103,19 @@ async function adminPanelBaslat() {
 
 
             const isFeatured = featuredElement ? featuredElement.checked : false;
+            const features = {};
+            Object.keys(featureElements).forEach(function (key) {
+                const value = featureElements[key] ? featureElements[key].value.trim() : "";
+                if (value) features[key] = value;
+            });
+            const sizes = productSizesElement
+                ? Array.from(productSizesElement.querySelectorAll(".product-size-row")).map(function (row) {
+                    return {
+                        size: row.querySelector(".size-value").value.trim(),
+                        price: Number(row.querySelector(".size-price").value)
+                    };
+                }).filter(function (item) { return item.size && !Number.isNaN(item.price); })
+                : [];
 
 
             mesajTemizle(productFormMessage);
@@ -1097,7 +1170,11 @@ async function adminPanelBaslat() {
 
                 is_active: isActive,
 
-                is_featured: isFeatured
+                is_featured: isFeatured,
+                features: features,
+                sizes: sizes,
+                is_featured_badge: badgeEnabledElement ? badgeEnabledElement.checked : false,
+                badge_text: badgeElement ? badgeElement.value.trim() || null : null
             };
 
 

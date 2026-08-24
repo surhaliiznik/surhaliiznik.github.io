@@ -1201,6 +1201,9 @@ MOBİL - TABLET
 }
 ```
 
+.product-features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.product-sizes-editor{display:grid;gap:8px;margin-bottom:10px}.product-size-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center}.product-size-row input{min-width:0}.remove-size-button{min-height:38px;border:1px solid #b52b2b;border-radius:6px;background:transparent;color:#b52b2b;cursor:pointer}.checkbox-label{display:flex!important;align-items:center;gap:8px}.checkbox-label input{width:auto!important}.product-form-grid .gold-button{width:auto}
+@media (max-width:700px){.product-features-grid{grid-template-columns:1fr 1fr}.product-size-row{grid-template-columns:1fr 1fr}.remove-size-button{grid-column:1/-1}}
+
 }
 
 /* ==========================================================

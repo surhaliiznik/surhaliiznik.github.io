@@ -358,6 +358,10 @@ async function urunleriGetir() {
                 image_url,
                 is_active,
                 is_featured,
+                features,
+                sizes,
+                is_featured_badge,
+                badge_text,
                 created_at
             `)
             .eq(
@@ -1038,6 +1042,49 @@ function heroGorseliniUygula() {
 
 function urunDetayBaglantilariniHazirla() {
 
+    const modal = document.getElementById("productDetailModal");
+    const products = window.surHaliProducts || {};
+
+    function detayModaliniOlustur() {
+        if (modal) return modal;
+        const element = document.createElement("div");
+        element.id = "productDetailModal";
+        element.className = "product-detail-modal";
+        element.innerHTML = '<div class="product-detail-dialog" role="dialog" aria-modal="true"><button type="button" class="product-detail-close" aria-label="Kapat">&times;</button><div class="product-detail-body"></div></div>';
+        document.body.appendChild(element);
+        element.querySelector(".product-detail-close").addEventListener("click", function () { element.classList.remove("is-open"); });
+        element.addEventListener("click", function (event) { if (event.target === element) element.classList.remove("is-open"); });
+        return element;
+    }
+
+    function jsonValue(value, fallback) {
+        if (Array.isArray(value) || (value && typeof value === "object")) return value;
+        if (typeof value === "string") { try { return JSON.parse(value); } catch (error) { return fallback; } }
+        return fallback;
+    }
+
+    function urunDetayiniAc(product) {
+        const detailModal = detayModaliniOlustur();
+        const body = detailModal.querySelector(".product-detail-body");
+        const features = jsonValue(product.features, {});
+        const sizes = jsonValue(product.sizes, []);
+        const sizeOptions = Array.isArray(sizes) ? sizes : [];
+        const initialSize = sizeOptions[0] || { size: product.size || "Standart", price: product.price || 0 };
+        const featureLabels = { point: "İlme / Point", thickness: "Kalınlık", weight: "Ağırlık", material: "Malzeme", color: "Renk", robot: "Robot Süpürge Uyumu" };
+        const featureHtml = Object.keys(featureLabels).filter(function (key) { return features[key] !== undefined && features[key] !== ""; }).map(function (key) { const value = key === "robot" ? (features[key] === true || features[key] === "true" ? "Uygun" : "Uygun değil") : features[key]; return `<li>✓ ${escapeHTML(featureLabels[key])}: ${escapeHTML(value)}</li>`; }).join("");
+        const optionsHtml = sizeOptions.map(function (item, index) { return `<option value="${index}">${escapeHTML(item.size || item.label || "Ebat")} - ${fiyatFormatla(item.price)}</option>`; }).join("");
+        body.innerHTML = `<div class="product-detail-media"><img src="${escapeHTML(urunResmi(product, window.surHaliImages || {}))}" alt="${escapeHTML(product.name || "Ürün")}">${product.is_featured_badge && product.badge_text ? `<span class="product-badge">${escapeHTML(product.badge_text)}</span>` : ""}</div><div class="product-detail-copy"><span class="product-detail-category">${escapeHTML(product.category || "")}</span><h2>${escapeHTML(product.name || "Ürün")}</h2><div class="product-rating">★★★★★ <span>Değerlendirme</span></div><div class="product-detail-price" data-detail-price>${fiyatFormatla(initialSize.price)}</div><ul class="product-features">${featureHtml}</ul><label class="product-option-label">Ebat<select class="product-size-select">${optionsHtml || `<option value="0">${escapeHTML(initialSize.size)}</option>`}</select></label><div class="product-quantity"><button type="button" data-quantity="decrease">−</button><span data-quantity-value>1</span><button type="button" data-quantity="increase">+</button></div><button type="button" class="primary-button add-to-cart-button">Sepete Ekle</button><p class="cart-message" aria-live="polite"></p></div>`;
+        let quantity = 1;
+        const select = body.querySelector(".product-size-select");
+        const price = body.querySelector("[data-detail-price]");
+        const quantityValue = body.querySelector("[data-quantity-value]");
+        select.addEventListener("change", function () { const selected = sizeOptions[Number(select.value)] || initialSize; price.textContent = fiyatFormatla(selected.price); });
+        body.querySelector('[data-quantity="decrease"]').addEventListener("click", function () { quantity = Math.max(1, quantity - 1); quantityValue.textContent = quantity; });
+        body.querySelector('[data-quantity="increase"]').addEventListener("click", function () { quantity += 1; quantityValue.textContent = quantity; });
+        body.querySelector(".add-to-cart-button").addEventListener("click", function () { const selected = sizeOptions[Number(select.value)] || initialSize; const cart = JSON.parse(localStorage.getItem("surHaliCart") || "[]"); cart.push({ productId: product.id, name: product.name, size: selected.size || selected.label, price: selected.price, quantity: quantity }); localStorage.setItem("surHaliCart", JSON.stringify(cart)); body.querySelector(".cart-message").textContent = "Ürün seçtiğiniz ebat ve fiyatla sepete eklendi."; });
+        detailModal.classList.add("is-open");
+    }
+
     document
         .querySelectorAll(
             ".product-image[data-product-id]"
@@ -1049,14 +1096,9 @@ function urunDetayBaglantilariniHazirla() {
                     "click",
                     function (event) {
 
-                        /*
-                         * Şimdilik ürün detay sayfası
-                         * oluşturulmadığı için link davranışını
-                         * engelliyoruz.
-                         */
-
                         event.preventDefault();
-
+                        const product = products[element.dataset.productId];
+                        if (product) urunDetayiniAc(product);
                     }
                 );
 
@@ -1141,6 +1183,12 @@ async function siteyiBaslat() {
             coversMap
         } =
             await urunleriGetir();
+
+        window.surHaliProducts = {};
+        products.forEach(function (product) {
+            window.surHaliProducts[product.id] = product;
+        });
+        window.surHaliImages = imagesMap;
 
 
         /* ==================================================

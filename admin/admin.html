@@ -459,6 +459,40 @@
 
                     </div>
 
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label for="productBadgeText">Rozet Metni</label>
+                        <input type="text" id="productBadgeText" placeholder="Örn. İNDİRİM, KAMPANYA">
+                    </div>
+
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label class="checkbox-label" for="productFeaturedBadge">
+                            <input type="checkbox" id="productFeaturedBadge">
+                            Kampanya Rozeti Göster
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label>Teknik Özellikler</label>
+                        <div class="product-features-grid">
+                            <input type="text" id="featurePoint" placeholder="İlme / Point">
+                            <input type="text" id="featureThickness" placeholder="Kalınlık">
+                            <input type="text" id="featureWeight" placeholder="Ağırlık">
+                            <input type="text" id="featureMaterial" placeholder="Malzeme">
+                            <input type="text" id="featureColor" placeholder="Renk">
+                            <select id="featureRobot">
+                                <option value="">Robot Süpürge Uyumu</option>
+                                <option value="true">Uygun</option>
+                                <option value="false">Uygun değil</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label>Ebat &amp; Fiyat Seçenekleri</label>
+                        <div id="productSizes" class="product-sizes-editor"></div>
+                        <button type="button" class="gold-button" id="addProductSizeButton">+ Ebat Ekle</button>
+                    </div>
+
                 </div>
 
 
