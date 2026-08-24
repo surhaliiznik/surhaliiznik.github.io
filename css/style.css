@@ -1,1 +1,3 @@
+/* Shared boutique theme entry point for pages that load style.css. */
+@import url("./site.css");
 

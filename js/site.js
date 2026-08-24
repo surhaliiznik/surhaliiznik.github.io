@@ -15,7 +15,7 @@ const WHATSAPP_NUMBER = "905396369095";
 
 const STORAGE_BUCKET = "category-images";
 
-const CATEGORY_COVERS_PATH = "category-covers/";
+const CATEGORY_COVERS_PATH = "category-covers";
 
 const HERO_IMAGE_PATH = "assets/images/hero-ana-sayfa-magaza.png";
 
@@ -434,9 +434,14 @@ async function urunleriGetir() {
     (images || []).forEach(
         function (image) {
 
+            const imagePath =
+                typeof image.image_path === "string"
+                    ? image.image_path.replace(/^\/+/, "")
+                    : "";
+
             const isCategoryCover =
-                typeof image.image_path === "string" &&
-                image.image_path.startsWith(CATEGORY_COVERS_PATH);
+                imagePath === CATEGORY_COVERS_PATH ||
+                imagePath.startsWith(CATEGORY_COVERS_PATH + "/");
 
             if (isCategoryCover || !image.product_id) {
 
