@@ -1081,13 +1081,13 @@ function urunDetayBaglantilariniHazirla() {
         select.addEventListener("change", function () { const selected = sizeOptions[Number(select.value)] || initialSize; price.textContent = fiyatFormatla(selected.price); });
         body.querySelector('[data-quantity="decrease"]').addEventListener("click", function () { quantity = Math.max(1, quantity - 1); quantityValue.textContent = quantity; });
         body.querySelector('[data-quantity="increase"]').addEventListener("click", function () { quantity += 1; quantityValue.textContent = quantity; });
-        body.querySelector(".add-to-cart-button").addEventListener("click", function () { const selected = sizeOptions[Number(select.value)] || initialSize; const cart = JSON.parse(localStorage.getItem("surHaliCart") || "[]"); cart.push({ productId: product.id, name: product.name, size: selected.size || selected.label, price: selected.price, quantity: quantity }); localStorage.setItem("surHaliCart", JSON.stringify(cart)); body.querySelector(".cart-message").textContent = "Ürün seçtiğiniz ebat ve fiyatla sepete eklendi."; });
+        body.querySelector(".add-to-cart-button").addEventListener("click", function (event) { event.stopPropagation(); const selected = sizeOptions[Number(select.value)] || initialSize; const cart = JSON.parse(localStorage.getItem("surHaliCart") || "[]"); cart.push({ productId: product.id, name: product.name, size: selected.size || selected.label, price: selected.price, quantity: quantity }); localStorage.setItem("surHaliCart", JSON.stringify(cart)); body.querySelector(".cart-message").textContent = "Ürün seçtiğiniz ebat ve fiyatla sepete eklendi."; });
         detailModal.classList.add("is-open");
     }
 
     document
         .querySelectorAll(
-            ".product-image[data-product-id]"
+            ".product-card[data-product-id]"
         )
         .forEach(
             function (element) {
@@ -1096,6 +1096,9 @@ function urunDetayBaglantilariniHazirla() {
                     "click",
                     function (event) {
 
+                        if (event.target.closest(".whatsapp-button")) {
+                            return;
+                        }
                         event.preventDefault();
                         const product = products[element.dataset.productId];
                         if (product) urunDetayiniAc(product);
