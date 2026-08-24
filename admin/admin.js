@@ -13,7 +13,7 @@ console.log("Sur Halı Admin başlatılıyor...");
 const SUPABASE_URL =
     "https://lhltolrtgnfkbwfkpaex.supabase.co";
 
-const SUPABASE_KEY =
+const SUPABASE_ANON_KEY =
     "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
 
 
@@ -60,7 +60,7 @@ function supabaseBaslat() {
         supabaseClient =
             window.supabase.createClient(
                 SUPABASE_URL,
-                SUPABASE_KEY
+                SUPABASE_ANON_KEY
             );
 
 
