@@ -443,7 +443,12 @@ function loginSayfasiniBaslat() {
         passwordResetForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             const emailInput = document.getElementById("resetEmail");
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(emailInput.value.trim());
+            const { error } = await supabaseClient.auth.signInWithOtp({
+                email: emailInput.value.trim(),
+                options: {
+                    shouldCreateUser: false
+                }
+            });
 
             if (error) {
                 mesajYaz(passwordResetMessage, error.message);
@@ -464,7 +469,7 @@ function loginSayfasiniBaslat() {
             if (passwordResetDescription) {
                 passwordResetDescription.textContent = "E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.";
             }
-            mesajYaz(passwordResetMessage, "6 haneli doğrulama kodu e-postanıza gönderildi.", true);
+            mesajYaz(passwordResetMessage, "6 haneli kod mailinize gönderildi", true);
         });
     }
 
@@ -485,7 +490,7 @@ function loginSayfasiniBaslat() {
             const { data, error: verifyError } = await supabaseClient.auth.verifyOtp({
                 email: emailInput.value.trim(),
                 token: codeInput.value.trim(),
-                type: "recovery"
+                type: "email"
             });
 
             if (verifyError) {
@@ -513,7 +518,7 @@ function loginSayfasiniBaslat() {
 
             mesajYaz(newPasswordMessage, "Şifreniz başarıyla güncellendi!", true);
             setTimeout(function () {
-                window.location.href = "admin.html";
+                window.location.href = "index.html";
             }, 1200);
         });
     }
