@@ -483,7 +483,7 @@ function loginSayfasiniBaslat() {
                     ? error.message
                     : "Doğrulama başarısız oldu: geçerli bir oturum oluşturulamadı.";
                 console.error("Şifre sıfırlama OTP doğrulama hatası:", error || verifyMessage);
-                mesajYaz(newPasswordMessage, verifyMessage);
+                mesajYaz(newPasswordMessage, "Girdiğiniz kod hatalı veya süresi dolmuş.");
                 return;
             }
 
@@ -497,7 +497,7 @@ function loginSayfasiniBaslat() {
                 return;
             }
 
-            mesajYaz(newPasswordMessage, "Şifreniz güncellendi. Giriş sayfasına yönlendiriliyorsunuz.", true);
+            mesajYaz(newPasswordMessage, "Şifreniz başarıyla güncellendi!", true);
             setTimeout(function () {
                 window.location.href = "admin.html";
             }, 1200);
