@@ -444,7 +444,7 @@ async function adminPanelBaslat() {
 
 
             window.location.href =
-                "admin-login.html";
+                "login.html";
 
 
             return;
@@ -615,7 +615,7 @@ async function adminPanelBaslat() {
                 }
 
 
-                window.location.href = "admin-login.html";
+                window.location.href = "login.html";
 
             } catch (error) {
 
