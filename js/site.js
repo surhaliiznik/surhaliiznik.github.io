@@ -349,7 +349,7 @@ const { data: products, error } = await supabase
   .eq('is_active', true)
   .order('created_at', { ascending: false });
 
-    if (productError) {
+   if (error) {
 
         console.error(
             "Ürünler alınamadı:",
