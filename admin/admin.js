@@ -508,7 +508,14 @@ document.addEventListener(
         loginSayfasiniBaslat();
 
 
-        await adminPanelBaslat();
+        const adminDashboard =
+            document.querySelector(".sidebar") &&
+            document.querySelector(".main-content");
+
+
+        if (adminDashboard) {
+            await adminPanelBaslat();
+        }
 
     }
 );
