@@ -438,22 +438,32 @@ function loginSayfasiniBaslat() {
         passwordResetForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             const email = document.getElementById("resetEmail").value.trim();
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: "https://surhaliiznik.github.io/admin/login.html"
-            });
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
 
             if (error) {
                 mesajYaz(passwordResetMessage, error.message);
                 return;
             }
 
-            mesajYaz(passwordResetMessage, "Şifre yenileme bağlantısı e-posta adresinize gönderildi.", true);
+            if (passwordResetForm) {
+                passwordResetForm.hidden = true;
+            }
+            if (newPasswordForm) {
+                newPasswordForm.hidden = false;
+            }
+            if (passwordResetDescription) {
+                passwordResetDescription.textContent = "E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.";
+            }
+            mesajYaz(passwordResetMessage, "6 haneli doğrulama kodu e-posta adresinize gönderildi.", true);
         });
     }
 
     if (newPasswordForm) {
         newPasswordForm.addEventListener("submit", async function (event) {
             event.preventDefault();
+            const emailInput = document.getElementById("resetEmail");
+            const codeInput = document.getElementById("resetCode");
+            const newPasswordInput = document.getElementById("newPassword");
             const newPassword = document.getElementById("newPassword").value;
             const confirmation = document.getElementById("newPasswordConfirm").value;
 
@@ -462,10 +472,28 @@ function loginSayfasiniBaslat() {
                 return;
             }
 
-            const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+            const { data, error } = await supabaseClient.auth.verifyOtp({
+                email: emailInput.value.trim(),
+                token: codeInput.value.trim(),
+                type: "recovery"
+            });
 
-            if (error) {
-                mesajYaz(newPasswordMessage, error.message);
+            if (error || !data || !data.session) {
+                const verifyMessage = error
+                    ? error.message
+                    : "Doğrulama başarısız oldu: geçerli bir oturum oluşturulamadı.";
+                console.error("Şifre sıfırlama OTP doğrulama hatası:", error || verifyMessage);
+                mesajYaz(newPasswordMessage, verifyMessage);
+                return;
+            }
+
+            const { error: updateError } = await supabaseClient.auth.updateUser({
+                password: newPasswordInput.value.trim()
+            });
+
+            if (updateError) {
+                console.error("Yeni şifre güncellenemedi:", updateError);
+                mesajYaz(newPasswordMessage, updateError.message);
                 return;
             }
 
