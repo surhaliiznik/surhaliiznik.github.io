@@ -371,7 +371,7 @@ function loginSayfasiniBaslat() {
     const loginForm = document.getElementById("loginForm");
     const loginMessage = document.getElementById("loginMessage");
     const forgotPasswordButton = document.getElementById("forgotPasswordButton");
-    const passwordResetModal = document.getElementById("passwordResetModal");
+    const passwordResetModal = document.getElementById("reset-password-modal");
     const closePasswordResetButton = document.getElementById("closePasswordResetButton");
     const passwordResetForm = document.getElementById("passwordResetForm");
     const passwordResetMessage = document.getElementById("passwordResetMessage");
@@ -392,6 +392,8 @@ function loginSayfasiniBaslat() {
 
     const yeniSifreModunuAc = function () {
         if (passwordResetModal) {
+            passwordResetModal.removeAttribute("hidden");
+            passwordResetModal.style.display = "block";
             passwordResetModal.hidden = false;
         }
         if (passwordResetForm) {
@@ -447,16 +449,7 @@ function loginSayfasiniBaslat() {
                 return;
             }
 
-            if (passwordResetForm) {
-                passwordResetForm.hidden = true;
-            }
-            if (newPasswordForm) {
-                newPasswordForm.hidden = false;
-            }
-            if (passwordResetDescription) {
-                passwordResetDescription.textContent = "E-postanıza gelen bağlantıya tıklayarak yeni şifrenizi belirleyin.";
-            }
-            mesajYaz(passwordResetMessage, "Şifre yenileme bağlantısı e-posta adresinize gönderildi.", true);
+            mesajYaz(passwordResetMessage, "E-postanıza sıfırlama bağlantısı gönderildi.", true);
         });
     }
 
