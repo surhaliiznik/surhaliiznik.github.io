@@ -505,6 +505,9 @@ document.addEventListener(
         console.log("Supabase hazır.");
 
 
+        loginSayfasiniBaslat();
+
+
         await adminPanelBaslat();
 
     }
@@ -531,11 +534,6 @@ async function adminPanelBaslat() {
 
 
     if (!sidebar || !mainContent) {
-
-        console.warn(
-            "Admin paneli HTML elemanları bulunamadı."
-        );
-
         return;
     }
 
@@ -1030,7 +1028,6 @@ async function adminPanelBaslat() {
                 }
 
 
-                loginSayfasiniBaslat();
             }
 
 
