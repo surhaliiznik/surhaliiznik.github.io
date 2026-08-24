@@ -346,7 +346,7 @@ async function urunleriGetir() {
 const { data: products, error } = await supabase
   .from('products')
   .select('*');
-            .eq(
+            eq(
                 "is_active",
                 true
             )
