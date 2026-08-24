@@ -352,8 +352,138 @@ function mesajTemizle(element) {
 
 
 /* ==========================================================
+   LOGIN VE ŞİFRE SIFIRLAMA
+========================================================== */
+
+function loginSayfasiniBaslat() {
+
+    const loginForm = document.getElementById("loginForm");
+    const loginMessage = document.getElementById("loginMessage");
+    const forgotPasswordButton = document.getElementById("forgotPasswordButton");
+    const passwordResetModal = document.getElementById("passwordResetModal");
+    const closePasswordResetButton = document.getElementById("closePasswordResetButton");
+    const passwordResetForm = document.getElementById("passwordResetForm");
+    const passwordResetMessage = document.getElementById("passwordResetMessage");
+    const newPasswordForm = document.getElementById("newPasswordForm");
+    const newPasswordMessage = document.getElementById("newPasswordMessage");
+    const passwordResetDescription = document.getElementById("passwordResetDescription");
+
+    if (!loginForm || !supabaseClient) {
+        return;
+    }
+
+    const mesajYaz = function (element, message, success = false) {
+        if (element) {
+            element.textContent = message;
+            element.style.color = success ? "#1b5e20" : "#c62828";
+        }
+    };
+
+    const yeniSifreModunuAc = function () {
+        if (passwordResetModal) {
+            passwordResetModal.hidden = false;
+        }
+        if (passwordResetForm) {
+            passwordResetForm.hidden = true;
+        }
+        if (newPasswordForm) {
+            newPasswordForm.hidden = false;
+        }
+        if (passwordResetDescription) {
+            passwordResetDescription.textContent = "Yeni şifreni belirle ve kaydet.";
+        }
+    };
+
+    if (loginForm) {
+        loginForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                mesajYaz(loginMessage, error.message);
+                return;
+            }
+
+            window.location.href = "admin.html";
+        });
+    }
+
+    if (forgotPasswordButton && passwordResetModal) {
+        forgotPasswordButton.addEventListener("click", function () {
+            passwordResetModal.hidden = false;
+        });
+    }
+
+    if (closePasswordResetButton && passwordResetModal) {
+        closePasswordResetButton.addEventListener("click", function () {
+            passwordResetModal.hidden = true;
+        });
+    }
+
+    if (passwordResetForm) {
+        passwordResetForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const email = document.getElementById("resetEmail").value.trim();
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: "https://surhaliiznik.github.io/admin/admin-login.html"
+            });
+
+            if (error) {
+                mesajYaz(passwordResetMessage, error.message);
+                return;
+            }
+
+            mesajYaz(passwordResetMessage, "Sıfırlama bağlantısı e-posta adresinize gönderildi.", true);
+        });
+    }
+
+    if (newPasswordForm) {
+        newPasswordForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const newPassword = document.getElementById("newPassword").value;
+            const confirmation = document.getElementById("newPasswordConfirm").value;
+
+            if (newPassword !== confirmation) {
+                mesajYaz(newPasswordMessage, "Şifreler eşleşmiyor.");
+                return;
+            }
+
+            const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+            if (error) {
+                mesajYaz(newPasswordMessage, error.message);
+                return;
+            }
+
+            mesajYaz(newPasswordMessage, "Şifreniz güncellendi. Giriş sayfasına yönlendiriliyorsunuz.", true);
+            setTimeout(function () {
+                window.location.href = "login.html";
+            }, 1200);
+        });
+    }
+
+    const recoveryUrl = new URL(window.location.href);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const isRecoveryLink = recoveryUrl.searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
+
+    if (isRecoveryLink) {
+        yeniSifreModunuAc();
+    }
+
+    supabaseClient.auth.onAuthStateChange(function (event) {
+        if (event === "PASSWORD_RECOVERY") {
+            yeniSifreModunuAc();
+        }
+    });
+}
+
+
+/* ==========================================================
    DOM HAZIR
-   ========================================================== */
+========================================================== */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -898,6 +1028,9 @@ async function adminPanelBaslat() {
 
                     return;
                 }
+
+
+                loginSayfasiniBaslat();
             }
 
 

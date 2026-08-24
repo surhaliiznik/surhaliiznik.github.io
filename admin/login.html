@@ -4,7 +4,6 @@
 
 <head>
 
-```
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,13 +11,11 @@
 <title>Sur Halı | Yönetici Girişi</title>
 
 <link rel="stylesheet" href="./admin-login.css">
-```
 
 </head>
 
 <body>
 
-```
 <div class="login-container">
 
     <div class="login-box">
@@ -63,6 +60,10 @@
                 Giriş Yap
             </button>
 
+            <button type="button" id="forgotPasswordButton" class="forgot-password-button">
+                Şifremi Unuttum
+            </button>
+
             <p id="loginMessage"></p>
 
         </form>
@@ -71,12 +72,41 @@
 
 </div>
 
+<div id="passwordResetModal" class="password-modal" hidden role="dialog" aria-modal="true" aria-labelledby="passwordResetTitle">
+    <div class="password-modal-content">
+        <button type="button" id="closePasswordResetButton" class="password-modal-close" aria-label="Pencereyi kapat">&times;</button>
+        <h2 id="passwordResetTitle">Şifreni Yenile</h2>
+        <p id="passwordResetDescription">E-posta adresini gir. Sıfırlama bağlantısını gönderelim.</p>
+
+        <form id="passwordResetForm">
+            <div class="form-group">
+                <label for="resetEmail">E-Posta</label>
+                <input type="email" id="resetEmail" required autocomplete="email">
+            </div>
+            <button type="submit">Sıfırlama Bağlantısı Gönder</button>
+            <p id="passwordResetMessage"></p>
+        </form>
+
+        <form id="newPasswordForm" hidden>
+            <div class="form-group">
+                <label for="newPassword">Yeni Şifre</label>
+                <input type="password" id="newPassword" minlength="6" required autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label for="newPasswordConfirm">Yeni Şifre Tekrar</label>
+                <input type="password" id="newPasswordConfirm" minlength="6" required autocomplete="new-password">
+            </div>
+            <button type="submit">Yeni Şifreyi Kaydet</button>
+            <p id="newPasswordMessage"></p>
+        </form>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="../js/supabase.js"></script>
 
 <script src="./admin.js"></script>
-```
 
 </body>
 
