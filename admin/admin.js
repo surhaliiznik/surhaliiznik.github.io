@@ -427,27 +427,47 @@ function loginSayfasiniBaslat() {
         passwordResetForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             const email = document.getElementById("resetEmail").value.trim();
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: "https://surhaliiznik.github.io/admin/admin-login.html"
-            });
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
 
             if (error) {
                 mesajYaz(passwordResetMessage, error.message);
                 return;
             }
 
-            mesajYaz(passwordResetMessage, "Sıfırlama bağlantısı e-posta adresinize gönderildi.", true);
+            if (passwordResetForm) {
+                passwordResetForm.hidden = true;
+            }
+            if (newPasswordForm) {
+                newPasswordForm.hidden = false;
+            }
+            if (passwordResetDescription) {
+                passwordResetDescription.textContent = "E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.";
+            }
+            mesajYaz(passwordResetMessage, "6 haneli doğrulama kodu e-posta adresinize gönderildi.", true);
         });
     }
 
     if (newPasswordForm) {
         newPasswordForm.addEventListener("submit", async function (event) {
             event.preventDefault();
+            const email = document.getElementById("resetEmail").value.trim();
+            const code = document.getElementById("resetCode").value.trim();
             const newPassword = document.getElementById("newPassword").value;
             const confirmation = document.getElementById("newPasswordConfirm").value;
 
             if (newPassword !== confirmation) {
                 mesajYaz(newPasswordMessage, "Şifreler eşleşmiyor.");
+                return;
+            }
+
+            const { error: verifyError } = await supabaseClient.auth.verifyOtp({
+                email,
+                token: code,
+                type: "recovery"
+            });
+
+            if (verifyError) {
+                mesajYaz(newPasswordMessage, verifyError.message);
                 return;
             }
 
@@ -465,19 +485,6 @@ function loginSayfasiniBaslat() {
         });
     }
 
-    const recoveryUrl = new URL(window.location.href);
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const isRecoveryLink = recoveryUrl.searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
-
-    if (isRecoveryLink) {
-        yeniSifreModunuAc();
-    }
-
-    supabaseClient.auth.onAuthStateChange(function (event) {
-        if (event === "PASSWORD_RECOVERY") {
-            yeniSifreModunuAc();
-        }
-    });
 }
 
 

@@ -76,18 +76,22 @@
     <div class="password-modal-content">
         <button type="button" id="closePasswordResetButton" class="password-modal-close" aria-label="Pencereyi kapat">&times;</button>
         <h2 id="passwordResetTitle">Şifreni Yenile</h2>
-        <p id="passwordResetDescription">E-posta adresini gir. Sıfırlama bağlantısını gönderelim.</p>
+        <p id="passwordResetDescription">E-posta adresini gir. 6 haneli doğrulama kodunu gönderelim.</p>
 
         <form id="passwordResetForm">
             <div class="form-group">
                 <label for="resetEmail">E-Posta</label>
                 <input type="email" id="resetEmail" required autocomplete="email">
             </div>
-            <button type="submit">Sıfırlama Bağlantısı Gönder</button>
+            <button type="submit">6 Haneli Kod Gönder</button>
             <p id="passwordResetMessage"></p>
         </form>
 
         <form id="newPasswordForm" hidden>
+            <div class="form-group">
+                <label for="resetCode">6 Haneli Doğrulama Kodu</label>
+                <input type="text" id="resetCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+            </div>
             <div class="form-group">
                 <label for="newPassword">Yeni Şifre</label>
                 <input type="password" id="newPassword" minlength="6" required autocomplete="new-password">
