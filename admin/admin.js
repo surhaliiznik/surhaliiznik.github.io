@@ -426,12 +426,15 @@ function loginSayfasiniBaslat() {
 
     if (forgotPasswordButton && passwordResetModal) {
         forgotPasswordButton.addEventListener("click", function () {
+            passwordResetModal.style.display = "block";
+            passwordResetModal.removeAttribute("hidden");
             passwordResetModal.hidden = false;
         });
     }
 
     if (closePasswordResetButton && passwordResetModal) {
         closePasswordResetButton.addEventListener("click", function () {
+            passwordResetModal.style.display = "none";
             passwordResetModal.hidden = true;
         });
     }
@@ -451,7 +454,12 @@ function loginSayfasiniBaslat() {
                 passwordResetForm.hidden = true;
             }
             if (newPasswordForm) {
+                newPasswordForm.removeAttribute("hidden");
                 newPasswordForm.hidden = false;
+            }
+            if (passwordResetModal) {
+                passwordResetModal.style.display = "block";
+                passwordResetModal.removeAttribute("hidden");
             }
             if (passwordResetDescription) {
                 passwordResetDescription.textContent = "E-postanıza gelen 6 haneli kodu ve yeni şifrenizi girin.";
