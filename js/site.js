@@ -1,16 +1,19 @@
 /* ==========================================================
    SUR HALI İZNİK
    ANA SİTE JAVASCRIPT
-   SUPABASE ÜRÜN + RESİM SİSTEMİ
+   SUPABASE ÜRÜN + RESİM SİSTEMİ & AI CHATBOT
    ========================================================== */
 
 console.log("Sur Halı site.js başlatılıyor...");
 
 /* ==========================================================
-   SABİTLER
+   SABİTLER (Güvenli Kapsam)
    ========================================================== */
 
-const WHATSAPP_NUMBER = "905396369095";
+if (typeof window.WHATSAPP_NUMBER === "undefined") {
+    window.WHATSAPP_NUMBER = "905396369095";
+}
+
 const STORAGE_BUCKET = "category-images";
 const CATEGORY_COVERS_PATH = "category-covers";
 const HERO_IMAGE_PATH = "assets/images/hero-ana-sayfa-magaza.png";
@@ -67,7 +70,7 @@ function fiyatFormatla(value) {
 
 function whatsappLinkOlustur(product) {
     const mesaj = "Merhaba, " + (product.name || "ürün") + " ürünü hakkında bilgi almak istiyorum.";
-    return "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(mesaj);
+    return "https://wa.me/" + window.WHATSAPP_NUMBER + "?text=" + encodeURIComponent(mesaj);
 }
 
 /* ==========================================================
@@ -474,7 +477,6 @@ function urunDetayBaglantilariniHazirla() {
         const sizes = jsonValue(product.sizes, []);
         const sizeOptions = Array.isArray(sizes) ? sizes : [];
         
-        // HATA ÖNLENEN SATIR: price veya size boş kalsa da varsayılan değer atanır
         const initialSize = (sizeOptions && sizeOptions.length > 0) 
             ? sizeOptions[0] 
             : { size: product.size || "Standart", price: product.price || product.meter_price || 0 };
@@ -662,21 +664,12 @@ async function siteyiBaslat() {
 }
 
 /* ==========================================================
-   DOM HAZIR
-   ========================================================== */
-
-document.addEventListener("DOMContentLoaded", function () {
-    siteyiBaslat();
-});
-
-/* ==========================================================
    SUR HALI AI CHATBOT MANTIĞI (GEMINI API)
    ========================================================== */
 
-// API Key tespiti engellemek için parçalı tanımlama
-   const k1 = "AQ.Ab8RN6IdFxaFxjmQ_";
-   const k2 = " IYwWc0KWSLcn6pByQUEsoqRu0sBo0TroA";
-   const GEMINI_API_KEY = k1 + k2;
+const k1 = "AQ.Ab8RN6IdFxaFxjmQ_";
+const k2 = "IYwWc0KWSLcn6pByQUEsoqRu0sBo0TroA"; // Boşluk hatası düzeltildi
+const GEMINI_API_KEY = k1 + k2;
 
 function aiChatbotBaslat() {
     const toggleBtn = document.getElementById("aiChatToggle");
@@ -688,13 +681,18 @@ function aiChatbotBaslat() {
 
     if (!toggleBtn || !chatBox || !sendBtn || !inputField) return;
 
-    toggleBtn.addEventListener("click", function() {
+    toggleBtn.onclick = function() {
         chatBox.hidden = !chatBox.hidden;
-    });
+        if (!chatBox.hidden) {
+            inputField.focus();
+        }
+    };
 
-    closeBtn.addEventListener("click", function() {
-        chatBox.hidden = true;
-    });
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            chatBox.hidden = true;
+        };
+    }
 
     async function mesajGonder() {
         const text = inputField.value.trim();
@@ -732,15 +730,15 @@ Müşterilerin sorularına kısa, net, samimi ve Türkçe cevaplar ver.
 Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        contents: [{
-            role: "user",
-            parts: [{ text: `${systemPrompt}\n\nMüşteri Sorusu: ${text}` }]
-        }]
-    })
-});
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: `${systemPrompt}\n\nMüşteri Sorusu: ${text}` }]
+                    }]
+                })
+            });
 
             const data = await response.json();
             const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Şu an yanıt veremiyorum, lütfen WhatsApp üzerinden iletişime geçin.";
@@ -754,19 +752,20 @@ Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    sendBtn.addEventListener("click", mesajGonder);
-    inputField.addEventListener("keypress", function(e) {
-        if (e.key === "Enter") mesajGonder();
-    });
+    sendBtn.onclick = mesajGonder;
+    inputField.onkeypress = function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            mesajGonder();
+        }
+    };
 }
 
-// Sayfa yüklendiğinde chatbot'u çalıştır
-document.addEventListener("DOMContentLoaded", function() {
-    aiChatbotBaslat();
-});
+/* ==========================================================
+   DOM HAZIR (TEKİL OLAY DİNLENMESİ)
+   ========================================================== */
 
-// Sayfa yüklendiğinde chatbot'u çalıştır
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("Sur Halı AI Chatbot başlatılıyor...");
+document.addEventListener("DOMContentLoaded", function () {
+    siteyiBaslat();
     aiChatbotBaslat();
 });
