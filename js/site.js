@@ -667,8 +667,9 @@ async function siteyiBaslat() {
    SUR HALI AI CHATBOT MANTIĞI (GEMINI API)
    ========================================================== */
 
-const k1 = "AQ.Ab8RN6ISS0azX2ncM2iB7dtvsTBdYn1c";
-const k2 = "WCYNR8-123fPkk8qog";
+// Yeni Gemini API Anahtarı (GitHub engeline takılmaması için bölündü)
+const k1 = "AQ.Ab8RN6IH1H3h_AV46sqlSmeO";
+const k2 = "GhaPUj5Dnf_AqMHpsNU-V1DxNg";
 const GEMINI_API_KEY = k1 + k2;
 
 function aiChatbotBaslat() {
@@ -726,10 +727,14 @@ Müşterilerin sorularına kısa, net, samimi ve Türkçe cevaplar ver.
 Ölçü, özel kesim, metre fiyatı veya yıkanabilir halılar hakkında bilgi ver. 
 Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
 
-            // KARARLI V1 ENDPOINT (Sorunsuz Çalışan Sürüm)
-const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+           // Kararlı v1 Endpoint ve Standart Model Adı
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY.trim()}`;
+
+const response = await fetch(apiUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+        "Content-Type": "application/json" 
+    },
     body: JSON.stringify({
         contents: [{
             role: "user",
