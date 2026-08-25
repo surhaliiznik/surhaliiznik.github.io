@@ -31,3 +31,15 @@
     color: #6b7280;
     line-height: 1.5;
 }
+
+/* Kategori Kapak Görsellerini Keskinleştirme */
+.category-card img,
+.category-cover img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
