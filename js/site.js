@@ -667,10 +667,10 @@ async function siteyiBaslat() {
    SUR HALI AI CHATBOT MANTIĞI (GEMINI API)
    ========================================================== */
 
-// GitHub Secret Scanner takılmaması için anahtarı parçalayarak birleştiriyoruz
 const k1 = "AQ.Ab8RN6ISS0azX2ncM2iB7dtvsTBdYn1c";
 const k2 = "WCYNR8-123fPkk8qog";
 const GEMINI_API_KEY = k1 + k2;
+
 function aiChatbotBaslat() {
     const toggleBtn = document.getElementById("aiChatToggle");
     const closeBtn = document.getElementById("aiChatClose");
@@ -698,7 +698,6 @@ function aiChatbotBaslat() {
         const text = inputField.value.trim();
         if (!text) return;
 
-        // Kullanıcı mesajı
         const userMsg = document.createElement("div");
         userMsg.className = "ai-msg ai-msg-user";
         userMsg.textContent = text;
@@ -707,7 +706,6 @@ function aiChatbotBaslat() {
         inputField.value = "";
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        // Bot bekliyor
         const botMsg = document.createElement("div");
         botMsg.className = "ai-msg ai-msg-bot";
         botMsg.textContent = "Düşünüyor...";
@@ -728,9 +726,9 @@ Müşterilerin sorularına kısa, net, samimi ve Türkçe cevaplar ver.
 Ölçü, özel kesim, metre fiyatı veya yıkanabilir halılar hakkında bilgi ver. 
 Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
 
-            // Güncel gemini-2.5-flash endpoint kullanımı
+            // Kararlı gemini-1.5-flash endpoint adresi
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: "POST",
+                method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     contents: [{
