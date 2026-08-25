@@ -415,7 +415,7 @@ function heroGorseliniUygula() {
 }
 
 /* ==========================================================
-   ÜRÜN KARTLARINDAKİ DETAY LİNKLERİ & MODAL (GÜNCELLENDİ)
+   ÜRÜN KARTLARINDAKİ DETAY LİNKLERİ & MODAL
    ========================================================== */
 
 function urunDetayBaglantilariniHazirla() {
@@ -473,10 +473,14 @@ function urunDetayBaglantilariniHazirla() {
         const features = jsonValue(product.features, {});
         const sizes = jsonValue(product.sizes, []);
         const sizeOptions = Array.isArray(sizes) ? sizes : [];
-        const initialSize = sizeOptions[0] || { size: product.size || "Standart", price: product.price || 0 };
+        
+        // HATA ÖNLENEN SATIR: price veya size boş kalsa da varsayılan değer atanır
+        const initialSize = (sizeOptions && sizeOptions.length > 0) 
+            ? sizeOptions[0] 
+            : { size: product.size || "Standart", price: product.price || product.meter_price || 0 };
+            
         const featureLabels = { point: "İlme / Point", thickness: "Kalınlık", weight: "Ağırlık", material: "Malzeme", color: "Renk", robot: "Robot Süpürge Uyumu" };
 
-        // Özellik listesi
         const featureHtml = Object.keys(featureLabels)
             .filter(function (key) { return features[key] !== undefined && features[key] !== ""; })
             .map(function (key) {
@@ -484,7 +488,6 @@ function urunDetayBaglantilariniHazirla() {
                 return `<li>✓ ${escapeHTML(featureLabels[key])}: ${escapeHTML(value)}</li>`;
             }).join("");
 
-        // Ebat Seçenekleri
         const optionsHtml = sizeOptions.length > 0 
             ? sizeOptions.map(function (item, index) {
                 return `<option value="${index}">${escapeHTML(item.size || item.label || "Ebat")} - ${fiyatFormatla(item.price)}</option>`;
@@ -495,17 +498,14 @@ function urunDetayBaglantilariniHazirla() {
             ? `<span class="product-badge">${escapeHTML(product.badge_text)}</span>` 
             : "";
 
-        // Açıklama Alanı
         const descriptionHtml = product.description 
             ? `<div class="product-description" style="margin: 12px 0; font-size: 0.95rem; color: #4b5563; line-height: 1.5;"><p>${escapeHTML(product.description)}</p></div>` 
             : "";
 
-        // Metre Fiyatı Bilgisi (Kaymaz / Özel Kesim Ürünleri İçin)
         const unitPriceNotice = (product.unit_price_note || product.category === "Kaymaz" || product.category === "Özel Kesim") 
             ? `<div class="unit-price-badge" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 8px 12px; border-radius: 6px; font-size: 0.88rem; margin: 10px 0;">ℹ️ Metre Fiyatı: <strong>${fiyatFormatla(product.meter_price || product.price)}</strong> (İstediğiniz ölçüde özel kesim yapılır)</div>` 
             : "";
 
-        // Yıkama Talimatı Bölümü
         const careInstructionsHtml = `
             <div class="care-instructions" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                 <h4 style="font-size: 0.95rem; color: #374151; margin-bottom: 8px;">🧼 Yıkama ve Bakım Talimatı</h4>
