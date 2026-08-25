@@ -524,6 +524,32 @@
     <script src="js/supabase.js"></script>
 
     <script src="js/site.js"></script>
+<!-- SUR HALI AI CHATBOT -->
+<div id="aiChatWrapper" class="ai-chat-wrapper">
+    <!-- Açma/Kapatma Butonu -->
+    <button type="button" id="aiChatToggle" class="ai-chat-toggle" aria-label="Sur Halı Asistanı">
+        💬 <span>Sur Halı Asistanı</span>
+    </button>
 
+    <!-- Sohbet Penceresi -->
+    <div id="aiChatBox" class="ai-chat-box" hidden>
+        <div class="ai-chat-header">
+            <div>
+                <strong>Sur Halı Yapay Zeka Asistanı</strong>
+                <small>Size nasıl yardımcı olabilirim?</small>
+            </div>
+            <button type="button" id="aiChatClose" class="ai-chat-close">&times;</button>
+        </div>
+        <div id="aiChatMessages" class="ai-chat-messages">
+            <div class="ai-msg ai-msg-bot">
+                Merhaba! Ben Sur Halı dijital asistanıyım. Ölçülerinize uygun halı, kaymaz yolluk modelleri veya metre fiyatları hakkında bana soru sorabilirsiniz! 😊
+            </div>
+        </div>
+        <div class="ai-chat-input-area">
+            <input type="text" id="aiChatInput" placeholder="Mesajınızı yazın..." />
+            <button type="button" id="aiChatSend">Gönder</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
