@@ -732,14 +732,15 @@ Müşterilerin sorularına kısa, net, samimi ve Türkçe cevaplar ver.
 Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: `${systemPrompt}\n\nMüşteri Sorusu: ${text}` }]
-                    }]
-                })
-            });
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        contents: [{
+            role: "user",
+            parts: [{ text: `${systemPrompt}\n\nMüşteri Sorusu: ${text}` }]
+        }]
+    })
+});
 
             const data = await response.json();
             const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Şu an yanıt veremiyorum, lütfen WhatsApp üzerinden iletişime geçin.";
