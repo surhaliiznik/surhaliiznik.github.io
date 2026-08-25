@@ -727,13 +727,12 @@ Müşterilerin sorularına kısa, net, samimi ve Türkçe cevaplar ver.
 Ölçü, özel kesim, metre fiyatı veya yıkanabilir halılar hakkında bilgi ver. 
 Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
 
-           // Kararlı v1 Endpoint ve Standart Model Adı
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY.trim()}`;
-
-const response = await fetch(apiUrl, {
+           // Yeni key yapısına uygun Header (Başlık) bazlı istek
+const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
     method: "POST",
     headers: { 
-        "Content-Type": "application/json" 
+        "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY 
     },
     body: JSON.stringify({
         contents: [{
