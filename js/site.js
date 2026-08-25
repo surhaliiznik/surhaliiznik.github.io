@@ -41,7 +41,7 @@ function escapeHTML(value) {
 }
 
 /* ==========================================================
-   FİYAT
+   FİYAT FORMATLAMA
    ========================================================== */
 
 function fiyatFormatla(value) {
@@ -62,16 +62,16 @@ function fiyatFormatla(value) {
 }
 
 /* ==========================================================
-   WHATSAPP
+   WHATSAPP LİNKİ
    ========================================================== */
 
 function whatsappLinkOlustur(product) {
-    const mesaj = `Merhaba, ${product.name || "ürün"} ürünü hakkında bilgi almak istiyorum.`;
+    const mesaj = "Merhaba, " + (product.name || "ürün") + " ürünü hakkında bilgi almak istiyorum.";
     return "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(mesaj);
 }
 
 /* ==========================================================
-   RESİM URL'Sİ
+   RESİM URL'Sİ HAZIRLAMA
    ========================================================== */
 
 function resimUrlHazirla(image) {
@@ -100,11 +100,11 @@ function resimUrlHazirla(image) {
 }
 
 /* ==========================================================
-   ÜRÜN RESMİ
+   ÜRÜN RESMİ ALMA
    ========================================================== */
 
 function urunResmi(product, imagesMap) {
-    const images = imagesMap[product.id] || [];
+    const images = (imagesMap && imagesMap[product.id]) ? imagesMap[product.id] : [];
 
     if (images.length > 0) {
         const firstImage = resimUrlHazirla(images[0]);
@@ -119,15 +119,20 @@ function urunResmi(product, imagesMap) {
 }
 
 /* ==========================================================
-   ÜRÜN KARTI
+   ÜRÜN KARTI ŞABLONU
    ========================================================== */
 
 function urunKartiOlustur(product, imagesMap) {
     const image = urunResmi(product, imagesMap);
 
     const imageHTML = image
-        ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(product.name || "Sur Halı ürünü")}" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">`
+        ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(product.name || 'Sur Halı ürünü')}" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">`
         : `<div class="product-no-image"><span>Sur Halı</span><small>Görsel hazırlanıyor</small></div>`;
+
+    const sizeHTML = product.size ? `<p class="product-size">${escapeHTML(product.size)}</p>` : "";
+    const priceText = (product.price !== null && product.price !== undefined && product.price !== "") 
+        ? fiyatFormatla(product.price) 
+        : "Bilgi için iletişime geçin";
 
     return `
         <article class="product-card" data-product-id="${escapeHTML(product.id)}">
@@ -137,10 +142,8 @@ function urunKartiOlustur(product, imagesMap) {
             <div class="product-info">
                 <span class="product-category">${escapeHTML(product.category || "")}</span>
                 <h3 class="product-title">${escapeHTML(product.name || "Ürün")}</h3>
-                ${product.size ? `<p class="product-size">${escapeHTML(product.size)}</p>` : ""}
-                <div class="product-price">
-                    ${product.price !== null && product.price !== undefined && product.price !== "" ? fiyatFormatla(product.price) : "Bilgi için iletişime geçin"}
-                </div>
+                ${sizeHTML}
+                <div class="product-price">${priceText}</div>
                 <a href="${escapeHTML(whatsappLinkOlustur(product))}" class="whatsapp-button" target="_blank" rel="noopener noreferrer">
                     WhatsApp'tan Bilgi Al
                 </a>
@@ -161,10 +164,10 @@ async function urunleriGetir() {
     }
 
     const { data: products, error: productError } = await supabaseClient
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
 
     if (productError) {
         console.error("Ürünler alınamadı:", productError);
@@ -254,7 +257,7 @@ function oneCikanUrunleriOlustur(products, imagesMap) {
    ========================================================== */
 
 function kategoriSlugOlustur(category) {
-    return category
+    return String(category)
         .toLowerCase()
         .replace(/ğ/g, "g")
         .replace(/ü/g, "u")
@@ -370,10 +373,10 @@ function kategoriMenusuOlustur(coversMap) {
         const coverUrl = cover ? resimUrlHazirla(cover) : null;
 
         if (coverUrl) {
-            const img = document.createElement('img');
+            const img = document.createElement("img");
             img.src = coverUrl;
-            img.alt = category + ' kapak';
-            img.style = 'width:100%;height:60px;object-fit:cover;border-radius:6px;margin-bottom:6px;';
+            img.alt = category + " kapak";
+            img.style.cssText = "width:100%;height:60px;object-fit:cover;border-radius:6px;margin-bottom:6px;";
             link.prepend(img);
         }
 
@@ -407,33 +410,53 @@ function kategoriKapaklariniUygula(coversMap) {
 function heroGorseliniUygula() {
     const heroMedia = document.querySelector("[data-hero-media]");
     if (heroMedia) {
-        heroMedia.style.backgroundImage = `url("${HERO_IMAGE_PATH}")`;
+        heroMedia.style.backgroundImage = "url('" + HERO_IMAGE_PATH + "')";
     }
 }
 
 /* ==========================================================
-   ÜRÜN KARTLARINDAKİ DETAY LİNKLERİ
+   ÜRÜN KARTLARINDAKİ DETAY LİNKLERİ & MODAL (GÜNCELLENDİ)
    ========================================================== */
 
 function urunDetayBaglantilariniHazirla() {
-    const modal = document.getElementById("productDetailModal");
-    const products = window.surHaliProducts || {};
+    let modal = document.getElementById("productDetailModal");
 
     function detayModaliniOlustur() {
         if (modal) return modal;
+        
         const element = document.createElement("div");
         element.id = "productDetailModal";
         element.className = "product-detail-modal";
-        element.innerHTML = '<div class="product-detail-dialog" role="dialog" aria-modal="true"><button type="button" class="product-detail-close" aria-label="Kapat">&times;</button><div class="product-detail-body"></div></div>';
+        
+        const dialog = document.createElement("div");
+        dialog.className = "product-detail-dialog";
+        dialog.setAttribute("role", "dialog");
+        dialog.setAttribute("aria-modal", "true");
+
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.className = "product-detail-close";
+        closeBtn.setAttribute("aria-label", "Kapat");
+        closeBtn.innerHTML = "&times;";
+
+        const bodyDiv = document.createElement("div");
+        bodyDiv.className = "product-detail-body";
+
+        dialog.appendChild(closeBtn);
+        dialog.appendChild(bodyDiv);
+        element.appendChild(dialog);
         document.body.appendChild(element);
 
-        element.querySelector(".product-detail-close").addEventListener("click", function () {
+        closeBtn.addEventListener("click", function () {
             element.classList.remove("is-open");
         });
+
         element.addEventListener("click", function (event) {
             if (event.target === element) element.classList.remove("is-open");
         });
-        return element;
+
+        modal = element;
+        return modal;
     }
 
     function jsonValue(value, fallback) {
@@ -453,6 +476,7 @@ function urunDetayBaglantilariniHazirla() {
         const initialSize = sizeOptions[0] || { size: product.size || "Standart", price: product.price || 0 };
         const featureLabels = { point: "İlme / Point", thickness: "Kalınlık", weight: "Ağırlık", material: "Malzeme", color: "Renk", robot: "Robot Süpürge Uyumu" };
 
+        // Özellik listesi
         const featureHtml = Object.keys(featureLabels)
             .filter(function (key) { return features[key] !== undefined && features[key] !== ""; })
             .map(function (key) {
@@ -460,31 +484,71 @@ function urunDetayBaglantilariniHazirla() {
                 return `<li>✓ ${escapeHTML(featureLabels[key])}: ${escapeHTML(value)}</li>`;
             }).join("");
 
-        const optionsHtml = sizeOptions.map(function (item, index) {
-            return `<option value="${index}">${escapeHTML(item.size || item.label || "Ebat")} - ${fiyatFormatla(item.price)}</option>`;
-        }).join("");
+        // Ebat Seçenekleri
+        const optionsHtml = sizeOptions.length > 0 
+            ? sizeOptions.map(function (item, index) {
+                return `<option value="${index}">${escapeHTML(item.size || item.label || "Ebat")} - ${fiyatFormatla(item.price)}</option>`;
+              }).join("")
+            : `<option value="0">${escapeHTML(initialSize.size)}</option>`;
+
+        const badgeHTML = (product.is_featured_badge && product.badge_text) 
+            ? `<span class="product-badge">${escapeHTML(product.badge_text)}</span>` 
+            : "";
+
+        // Açıklama Alanı
+        const descriptionHtml = product.description 
+            ? `<div class="product-description" style="margin: 12px 0; font-size: 0.95rem; color: #4b5563; line-height: 1.5;"><p>${escapeHTML(product.description)}</p></div>` 
+            : "";
+
+        // Metre Fiyatı Bilgisi (Kaymaz / Özel Kesim Ürünleri İçin)
+        const unitPriceNotice = (product.unit_price_note || product.category === "Kaymaz" || product.category === "Özel Kesim") 
+            ? `<div class="unit-price-badge" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 8px 12px; border-radius: 6px; font-size: 0.88rem; margin: 10px 0;">ℹ️ Metre Fiyatı: <strong>${fiyatFormatla(product.meter_price || product.price)}</strong> (İstediğiniz ölçüde özel kesim yapılır)</div>` 
+            : "";
+
+        // Yıkama Talimatı Bölümü
+        const careInstructionsHtml = `
+            <div class="care-instructions" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                <h4 style="font-size: 0.95rem; color: #374151; margin-bottom: 8px;">🧼 Yıkama ve Bakım Talimatı</h4>
+                <ul style="padding-left: 18px; margin: 0; font-size: 0.85rem; color: #6b7280; line-height: 1.5;">
+                    <li>30°C'de çamaşır makinesinde (hassas yıkama programında) sıkma yapmadan yıkanabilir.</li>
+                    <li>Çamaşır suyu veya ağartıcı kimyasallar kullanmayınız.</li>
+                    <li>Sıkmadan, asarak gölgede kurutunuz. Doğrudan güneş ışığına maruz bırakmayınız.</li>
+                    <li>Robot süpürge ve standart süpürge kullanımına uygundur.</li>
+                </ul>
+            </div>
+        `;
 
         body.innerHTML = `
             <div class="product-detail-media">
-                <img src="${escapeHTML(urunResmi(product, window.surHaliImages || {}))}" alt="${escapeHTML(product.name || "Ürün")}">
-                ${product.is_featured_badge && product.badge_text ? `<span class="product-badge">${escapeHTML(product.badge_text)}</span>` : ""}
+                <img src="${escapeHTML(urunResmi(product, window.surHaliImages || {}))}" alt="${escapeHTML(product.name || 'Ürün')}">
+                ${badgeHTML}
             </div>
             <div class="product-detail-copy">
                 <span class="product-detail-category">${escapeHTML(product.category || "")}</span>
                 <h2>${escapeHTML(product.name || "Ürün")}</h2>
                 <div class="product-rating">★★★★★ <span>Değerlendirme</span></div>
+                
                 <div class="product-detail-price" data-detail-price>${fiyatFormatla(initialSize.price)}</div>
+                ${unitPriceNotice}
+
+                ${descriptionHtml}
+
                 <ul class="product-features">${featureHtml}</ul>
-                <label class="product-option-label">Ebat
-                    <select class="product-size-select">${optionsHtml || `<option value="0">${escapeHTML(initialSize.size)}</option>`}</select>
+
+                <label class="product-option-label">Ebat Seçimi
+                    <select class="product-size-select">${optionsHtml}</select>
                 </label>
+
                 <div class="product-quantity">
                     <button type="button" data-quantity="decrease">−</button>
                     <span data-quantity-value>1</span>
                     <button type="button" data-quantity="increase">+</button>
                 </div>
+
                 <button type="button" class="primary-button add-to-cart-button">Sepete Ekle</button>
                 <p class="cart-message" aria-live="polite"></p>
+
+                ${careInstructionsHtml}
             </div>
         `;
 
@@ -530,6 +594,7 @@ function urunDetayBaglantilariniHazirla() {
         element.addEventListener("click", function (event) {
             if (event.target.closest(".whatsapp-button")) return;
             event.preventDefault();
+            const products = window.surHaliProducts || {};
             const product = products[element.dataset.productId];
             if (product) urunDetayiniAc(product);
         });
