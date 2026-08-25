@@ -763,3 +763,9 @@ Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
 document.addEventListener("DOMContentLoaded", function() {
     aiChatbotBaslat();
 });
+
+// Sayfa yüklendiğinde chatbot'u çalıştır
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("Sur Halı AI Chatbot başlatılıyor...");
+    aiChatbotBaslat();
+});
