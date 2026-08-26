@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sur Halı | İznik Halı Mağazası</title>
-    <link rel="stylesheet" href="css/style.css?v=10.0">
+    <!-- CSS Dosya Yolu Başına Eğik Çizgi Koymadan Bağlandı -->
+    <link rel="stylesheet" href="css/style.css?v=20.0">
 </head>
 <body>
 
-    <!-- ÜST MENÜ & HEADER -->
     <header class="main-header">
         <div class="logo">
             <h2>SUR HALI</h2>
@@ -20,46 +20,36 @@
         </nav>
     </header>
 
-    <!-- BANNER BÖLÜMÜ -->
     <section class="hero-banner">
         <h1>Evinize Şıklık Katın</h1>
         <p>İznik'in en geniş halı ve yolluk koleksiyonu Sur Halı'da.</p>
     </section>
 
-    <!-- KATALOGLAR BÖLÜMÜ -->
     <section id="kataloglar" class="katalog-section">
         <h2>Kataloglarımız</h2>
         <div class="katalog-grid">
             <div class="katalog-card">
-                <img src="images/katalog1.jpg" alt="Makine Halıları Katalog" onerror="this.onerror=null; this.src='images/katalog1.png';">
+                <img src="images/katalog1.jpg" alt="Makine Halıları Katalog" onerror="this.src='https://via.placeholder.com/400x300?text=Makine+Halilari'">
                 <h3>Makine Halıları</h3>
                 <p>En yeni sezon salon ve oda halıları.</p>
             </div>
             <div class="katalog-card">
-                <img src="images/katalog2.jpg" alt="Yıkanabilir Yolluklar Katalog" onerror="this.onerror=null; this.src='images/katalog2.png';">
+                <img src="images/katalog2.jpg" alt="Yıkanabilir Yolluklar Katalog" onerror="this.src='https://via.placeholder.com/400x300?text=Yikanabilir+Yolluklar'">
                 <h3>Yıkanabilir Yolluklar</h3>
                 <p>Kaymaz tabanlı, pratik ve şık runner yolluklar.</p>
             </div>
             <div class="katalog-card">
-                <img src="images/katalog3.jpg" alt="Sisal ve İskandinav Halılar Katalog" onerror="this.onerror=null; this.src='images/katalog3.png';">
+                <img src="images/katalog3.jpg" alt="Sisal ve İskandinav Halılar Katalog" onerror="this.src='https://via.placeholder.com/400x300?text=Sisal+Hali'">
                 <h3>Sisal & İskandinav</h3>
                 <p>Modern dokular ve doğal malzemeler.</p>
             </div>
         </div>
     </section>
 
-    <!-- İLETİŞİM BÖLÜMÜ -->
-    <section id="iletisim" class="contact-section">
-        <h2>İletişim & Adres</h2>
-        <p>İznik / Bursa</p>
-    </section>
-
-    <!-- CHATBOT BUTONU -->
     <button id="chat-toggle-btn" class="chat-toggle-btn" onclick="toggleChat()">
         💬 Canlı Destek
     </button>
 
-    <!-- CHATBOT PENCERESİ -->
     <div id="chat-window" class="chat-window">
         <div class="chat-header">
             <span>Sur Halı Canlı Destek</span>
@@ -76,8 +66,7 @@
         </div>
     </div>
 
-    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/site.js?v=10.0"></script>
+    <script src="js/site.js?v=20.0"></script>
 </body>
 </html>
