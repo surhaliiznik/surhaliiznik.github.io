@@ -778,3 +778,78 @@ document.addEventListener("DOMContentLoaded", function () {
     siteyiBaslat();
     aiChatbotBaslat();
 });
+// ==================================================
+// SUR HALI YAPAY ZEKA ASİSTANI (GÜNCEL MODEL & DÜZGÜN AÇILMA/KAPANMA)
+// ==================================================
+
+// Chatbot Penceresini Aç / Kapat Fonksiyonu
+window.toggleChat = function() {
+    const chatWindow = document.getElementById("chat-window");
+    if (chatWindow) {
+        // 'active' class'ını ekler veya çıkarır
+        chatWindow.classList.toggle("active");
+    }
+};
+
+// Mesaj Gönderme Fonksiyonu (Google Gemini API Entegrasyonu)
+window.mesajGonder = async function() {
+    const inputField = document.getElementById("chat-input");
+    const messagesContainer = document.getElementById("chat-messages");
+    if (!inputField || !messagesContainer) return;
+
+    const userText = inputField.value.trim();
+    if (!userText) return;
+
+    // 1. Kullanıcının yazdığı mesajı ekrana bas
+    appendMessage("user", userText);
+    inputField.value = "";
+
+    // 2. Yanıt bekleniyor göstergesi ekle
+    const typingIndicator = appendMessage("bot", "Yazıyor...");
+
+    try {
+        // En güncel gemini-3.6-flash modeli kullanımı
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                contents: [{
+                    role: "user",
+                    parts: [{ text: `Sen Bursa İznik'te bulunan Sur Halı mağazasının müşteri temsilcisisin. Mağazamızda makine halıları, yıkanabilir kaymaz yolluklar ve sisal halılar bulunmaktadır. Müşterilere samimi, nazik ve kısa yanıtlar ver.\n\nMüşteri: ${userText}` }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+
+        // Bekliyor yazısını kaldır
+        if (typingIndicator && typingIndicator.parentNode) {
+            typingIndicator.parentNode.removeChild(typingIndicator);
+        }
+
+        // Başarılı yanıtı ekrana yaz
+        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            appendMessage("bot", data.candidates[0].content.parts[0].text);
+        } else {
+            appendMessage("bot", "Şu an yanıt verilemiyor. Dilerseniz WhatsApp hattımızdan ulaşabilirsiniz.");
+        }
+    } catch (error) {
+        if (typingIndicator && typingIndicator.parentNode) {
+            typingIndicator.parentNode.removeChild(typingIndicator);
+        }
+        appendMessage("bot", "Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
+    }
+};
+
+function appendMessage(sender, text) {
+    const container = document.getElementById("chat-messages");
+    if (!container) return null;
+    const div = document.createElement("div");
+    div.className = `chat-message ${sender}-message`;
+    div.innerHTML = `<p>${text.replace(/\n/g, "<br>")}</p>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+}
