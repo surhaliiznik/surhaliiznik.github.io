@@ -859,24 +859,21 @@ document.addEventListener("DOMContentLoaded", function () {
     const toggleBtn = document.getElementById("aiChatToggle");
 
     if (closeBtn && chatBox) {
-        closeBtn.addEventListener("click", function (e) {
+        closeBtn.onclick = function (e) {
             e.preventDefault();
             e.stopPropagation();
-            chatBox.style.display = "none"; // Doğrudan stili gizle
-            chatBox.setAttribute("hidden", "true");
-        });
+            chatBox.setAttribute("style", "display: none !important;");
+        };
     }
 
     if (toggleBtn && chatBox) {
-        toggleBtn.addEventListener("click", function (e) {
+        toggleBtn.onclick = function (e) {
             e.preventDefault();
-            if (chatBox.style.display === "none" || chatBox.hasAttribute("hidden")) {
-                chatBox.style.display = "flex"; // Veya CSS'teki orijinal düzeniniz (block/flex)
-                chatBox.removeAttribute("hidden");
+            if (window.getComputedStyle(chatBox).display === "none") {
+                chatBox.setAttribute("style", "display: flex !important;");
             } else {
-                chatBox.style.display = "none";
-                chatBox.setAttribute("hidden", "true");
+                chatBox.setAttribute("style", "display: none !important;");
             }
-        });
+        };
     }
-}
+});
