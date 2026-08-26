@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sur Halı | İznik Halı Mağazası</title>
-    <link rel="stylesheet" href="css/style.css?v=6.0">
+    <link rel="stylesheet" href="css/style.css?v=10.0">
 </head>
 <body>
 
@@ -20,7 +20,13 @@
         </nav>
     </header>
 
-    <!-- KATALOGLAR BÖLÜMÜ (1. Problemin Çözümü: Temiz Yol Yapısı) -->
+    <!-- BANNER BÖLÜMÜ -->
+    <section class="hero-banner">
+        <h1>Evinize Şıklık Katın</h1>
+        <p>İznik'in en geniş halı ve yolluk koleksiyonu Sur Halı'da.</p>
+    </section>
+
+    <!-- KATALOGLAR BÖLÜMÜ -->
     <section id="kataloglar" class="katalog-section">
         <h2>Kataloglarımız</h2>
         <div class="katalog-grid">
@@ -42,12 +48,18 @@
         </div>
     </section>
 
-    <!-- CHATBOT BUTONU (Masaüstü ve Mobil) -->
+    <!-- İLETİŞİM BÖLÜMÜ -->
+    <section id="iletisim" class="contact-section">
+        <h2>İletişim & Adres</h2>
+        <p>İznik / Bursa</p>
+    </section>
+
+    <!-- CHATBOT BUTONU -->
     <button id="chat-toggle-btn" class="chat-toggle-btn" onclick="toggleChat()">
         💬 Canlı Destek
     </button>
 
-    <!-- CHATBOT PENCERESİ (3. Problemin Çözümü: Mobil Kapatma Butonu Yapısı) -->
+    <!-- CHATBOT PENCERESİ -->
     <div id="chat-window" class="chat-window">
         <div class="chat-header">
             <span>Sur Halı Canlı Destek</span>
@@ -66,6 +78,6 @@
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/site.js?v=6.0"></script>
+    <script src="js/site.js?v=10.0"></script>
 </body>
 </html>

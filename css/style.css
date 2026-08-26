@@ -1,4 +1,4 @@
-/* GENEL BİÇİMLENDİRME */
+/* GENEL SIFIRLAMA VE YAZI TİPİ */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -9,73 +9,138 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f8f9fa;
     color: #333;
+    line-height: 1.6;
 }
 
+/* HEADER & MENÜ */
 .main-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px 5%;
-    background-color: #fff;
+    background-color: #1a1a1a;
+    color: #fff;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.katalog-section {
-    padding: 40px 5%;
+.main-header .logo h2 {
+    color: #c59d5f;
+    letter-spacing: 2px;
+}
+
+.main-nav a {
+    color: #fff;
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.main-nav a:hover {
+    color: #c59d5f;
+}
+
+/* HERO BANNER */
+.hero-banner {
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('../images/katalog1.jpg');
+    background-size: cover;
+    background-position: center;
+    color: #fff;
     text-align: center;
+    padding: 80px 20px;
+}
+
+.hero-banner h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+/* KATALOGLAR */
+.katalog-section {
+    padding: 50px 5%;
+    text-align: center;
+}
+
+.katalog-section h2 {
+    margin-bottom: 30px;
+    font-size: 2rem;
+    color: #222;
 }
 
 .katalog-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
+    gap: 30px;
 }
 
 .katalog-card {
     background: #fff;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    padding: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    padding: 20px;
+    transition: transform 0.3s ease;
+}
+
+.katalog-card:hover {
+    transform: translateY(-5px);
 }
 
 .katalog-card img {
     width: 100%;
-    height: 250px;
+    height: 260px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 8px;
+    margin-bottom: 15px;
 }
 
-/* CHATBOT TASARIMI (MASAÜSTÜ & MOBİL) */
+.katalog-card h3 {
+    color: #1a1a1a;
+    margin-bottom: 8px;
+}
+
+.katalog-card p {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* İLETİŞİM */
+.contact-section {
+    background-color: #eee;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+/* CHATBOT (MASAÜSTÜ) */
 .chat-toggle-btn {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 25px;
+    right: 25px;
     background-color: #c59d5f;
     color: #fff;
     border: none;
-    padding: 12px 20px;
+    padding: 14px 22px;
     border-radius: 30px;
+    font-size: 15px;
     font-weight: bold;
     cursor: pointer;
-    z-index: 999;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 
 .chat-window {
     display: none;
     position: fixed;
-    bottom: 80px;
-    right: 20px;
+    bottom: 90px;
+    right: 25px;
     width: 360px;
     height: 500px;
     max-height: 80vh;
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
     flex-direction: column;
-    z-index: 1000;
+    z-index: 10000;
     overflow: hidden;
 }
 
@@ -97,7 +162,7 @@ body {
     background: transparent;
     border: none;
     color: white;
-    font-size: 20px;
+    font-size: 22px;
     cursor: pointer;
     padding: 0 5px;
     line-height: 1;
@@ -110,12 +175,13 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    background-color: #fdfdfd;
 }
 
 .chat-message {
     max-width: 80%;
     padding: 10px 14px;
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 14px;
     line-height: 1.4;
 }
@@ -124,24 +190,26 @@ body {
     align-self: flex-end;
     background-color: #c59d5f;
     color: white;
+    border-bottom-right-radius: 2px;
 }
 
 .bot-message {
     align-self: flex-start;
-    background-color: #f1f1f1;
+    background-color: #e9ecef;
     color: #333;
+    border-bottom-left-radius: 2px;
 }
 
 .chat-input-area {
     display: flex;
-    padding: 10px;
+    padding: 12px;
     border-top: 1px solid #eee;
     background: #fff;
 }
 
 .chat-input-area input {
     flex: 1;
-    padding: 10px;
+    padding: 10px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
     outline: none;
@@ -149,15 +217,16 @@ body {
 
 .chat-input-area button {
     margin-left: 8px;
-    padding: 10px 15px;
+    padding: 10px 16px;
     background-color: #c59d5f;
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
+    font-weight: bold;
 }
 
-/* MOBİL ÖZEL AYARLAR (3. Problemin Tam Çözümü) */
+/* CHATBOT MOBİL UYUM (Ekranı kaplama ve kapatma butonu düzeltmesi) */
 @media (max-width: 600px) {
     .chat-window {
         bottom: 0 !important;
