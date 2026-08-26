@@ -300,3 +300,41 @@
     font-weight: 600;
     cursor: pointer;
 }
+/* ==================================================
+   CHATBOT AÇILMA / KAPANMA GÖRÜNÜM AYARLARI
+   ================================================== */
+
+/* Chatbot penceresi başlangıçta gizli tutulur */
+.chat-window {
+    display: none;
+    position: fixed;
+    bottom: 90px;
+    right: 25px;
+    width: 350px;
+    height: 480px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    flex-direction: column;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+/* Butona basıldığında active sınıfı gelir ve pencere açılır */
+.chat-window.active {
+    display: flex !important;
+}
+
+/* Mobilde ekranı tam kaplama ve düzen */
+@media (max-width: 600px) {
+    .chat-window {
+        bottom: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+    }
+}
