@@ -728,7 +728,8 @@ Müşterilerin sorularına kısa, net, samimi ve Türkçe cevaplar ver.
 Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
 
            // Yeni key yapısına uygun Header (Başlık) bazlı istek
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,{
+const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
+    method: "POST",
     headers: { 
         "Content-Type": "application/json",
         "x-goog-api-key": GEMINI_API_KEY 
@@ -777,72 +778,3 @@ document.addEventListener("DOMContentLoaded", function () {
     siteyiBaslat();
     aiChatbotBaslat();
 });
-// ==================================================
-// SUR HALI YAPAY ZEKA ASİSTANI (GÜNCEL MODEL)
-// ==================================================
-window.toggleChat = function() {
-    const chatWindow = document.getElementById("chat-window");
-    if (chatWindow) {
-        chatWindow.classList.toggle("active");
-    }
-};
-
-window.mesajGonder = async function() {
-    const inputField = document.getElementById("chat-input");
-    const messagesContainer = document.getElementById("chat-messages");
-    if (!inputField || !messagesContainer) return;
-
-    const userText = inputField.value.trim();
-    if (!userText) return;
-
-    // Kullanıcı mesajını yaz
-    appendMessage("user", userText);
-    inputField.value = "";
-
-    // Bekleme göstergesi
-    const typingIndicator = appendMessage("bot", "Yazıyor...");
-
-    try {
-        // Not: GEMINI_API_KEY dosyanızın üst kısımlarında zaten tanımlıdır.
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                contents: [{
-                    role: "user",
-                    parts: [{ text: `Sen Bursa İznik'teki Sur Halı mağazasının asistanısın. Müşteriye kısa ve yardımcı yanıt ver.\n\nMüşteri: ${userText}` }]
-                }]
-            })
-        });
-
-        const data = await response.json();
-
-        if (typingIndicator && typingIndicator.parentNode) {
-            typingIndicator.parentNode.removeChild(typingIndicator);
-        }
-
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-            appendMessage("bot", data.candidates[0].content.parts[0].text);
-        } else {
-            appendMessage("bot", "Şu an yanıt verilemiyor. WhatsApp hattımızdan bize ulaşabilirsiniz.");
-        }
-    } catch (error) {
-        if (typingIndicator && typingIndicator.parentNode) {
-            typingIndicator.parentNode.removeChild(typingIndicator);
-        }
-        appendMessage("bot", "Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
-    }
-};
-
-function appendMessage(sender, text) {
-    const container = document.getElementById("chat-messages");
-    if (!container) return null;
-    const div = document.createElement("div");
-    div.className = `chat-message ${sender}-message`;
-    div.innerHTML = `<p>${text.replace(/\n/g, "<br>")}</p>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-    return div;
-}
