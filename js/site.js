@@ -853,3 +853,30 @@ function appendMessage(sender, text) {
     container.scrollTop = container.scrollHeight;
     return div;
 }
+document.addEventListener("DOMContentLoaded", function () {
+    const chatBox = document.getElementById("aiChatBox");
+    const closeBtn = document.getElementById("aiChatClose");
+    const toggleBtn = document.getElementById("aiChatToggle");
+
+    if (closeBtn && chatBox) {
+        closeBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            chatBox.style.display = "none"; // Doğrudan stili gizle
+            chatBox.setAttribute("hidden", "true");
+        });
+    }
+
+    if (toggleBtn && chatBox) {
+        toggleBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (chatBox.style.display === "none" || chatBox.hasAttribute("hidden")) {
+                chatBox.style.display = "flex"; // Veya CSS'teki orijinal düzeniniz (block/flex)
+                chatBox.removeAttribute("hidden");
+            } else {
+                chatBox.style.display = "none";
+                chatBox.setAttribute("hidden", "true");
+            }
+        });
+    }
+}
