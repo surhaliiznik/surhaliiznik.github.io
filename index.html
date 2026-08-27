@@ -11,7 +11,7 @@
     <meta name="robots" content="index, follow">
 
     <!-- CSS Dosyası -->
-    <link rel="stylesheet" href="css/style.css?v=6.0">
+    <link rel="stylesheet" href="css/style.css?v=8.0">
 </head>
 
 <body>
@@ -23,7 +23,7 @@
         <div class="header-container">
 
             <a href="index.html" class="logo-link">
-                <img src="images/logo.jpeg" alt="Sur Halı İznik" class="site-logo">
+                <img src="assets/images/logo.jpeg" alt="Sur Halı İznik" class="site-logo">
             </a>
 
             <nav class="main-nav">
@@ -99,8 +99,7 @@
             <div class="category-grid">
                 <a href="halilar.html" class="category-card" data-category="Halılar">
                     <div class="category-cover">
-                        <img src="images/halilar-kat.jpg" alt="Halılar kapak">
-                        <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
+                        <img src="assets/images/logo.jpeg" alt="Halılar kapak">
                     </div>
                     <div class="category-card-content">
                         <span>KOLEKSİYON</span>
@@ -112,8 +111,7 @@
 
                 <a href="halilar.html?category=Klasik%20Yolluklar" class="category-card" data-category="Klasik Yolluklar">
                     <div class="category-cover">
-                        <img src="images/klasik-kat.jpg" alt="Klasik Yolluklar kapak">
-                        <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
+                        <img src="assets/images/logo.jpeg" alt="Klasik Yolluklar kapak">
                     </div>
                     <div class="category-card-content">
                         <span>KOLEKSİYON</span>
@@ -125,8 +123,7 @@
 
                 <a href="halilar.html?category=Sisal" class="category-card" data-category="Sisal">
                     <div class="category-cover">
-                        <img src="images/sisal-kat.jpg" alt="Sisal kapak">
-                        <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
+                        <img src="assets/images/logo.jpeg" alt="Sisal kapak">
                     </div>
                     <div class="category-card-content">
                         <span>KOLEKSİYON</span>
@@ -138,8 +135,7 @@
 
                 <a href="halilar.html?category=Kaymaz" class="category-card" data-category="Kaymaz">
                     <div class="category-cover">
-                        <img src="images/kaymaz-kat.jpg" alt="Kaymaz kapak">
-                        <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
+                        <img src="assets/images/logo.jpeg" alt="Kaymaz kapak">
                     </div>
                     <div class="category-card-content">
                         <span>KOLEKSİYON</span>
@@ -151,8 +147,7 @@
 
                 <a href="halilar.html?category=%C3%96zel%20Kesim" class="category-card" data-category="Özel Kesim">
                     <div class="category-cover">
-                        <img src="images/ozel-kesim-kat.jpg" alt="Özel Kesim kapak">
-                        <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
+                        <img src="assets/images/logo.jpeg" alt="Özel Kesim kapak">
                     </div>
                     <div class="category-card-content">
                         <span>KOLEKSİYON</span>
@@ -228,32 +223,32 @@
     <!-- ==================================================
          SUR HALI AI CHATBOT
     =================================================== -->
-    <div id="aiChatWrapper" class="ai-chat-wrapper">
-        <button type="button" id="aiChatToggle" class="ai-chat-toggle" aria-label="Sur Halı Asistanı">
-            💬 <span>Sur Halı Asistanı</span>
+    <div id="aiChatWrapper" class="ai-chat-wrapper" style="position: fixed; bottom: 20px; right: 20px; z-index: 999999;">
+        <button type="button" id="aiChatToggle" class="ai-chat-toggle" aria-label="Sur Halı Asistanı" onclick="var box=document.getElementById('aiChatBox'); box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'flex' : 'none';" style="background: #2c3e50; color: #fff; border: none; padding: 12px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+            💬 Sur Halı Asistanı
         </button>
 
-        <div id="aiChatBox" class="ai-chat-box" style="display: none;">
-            <div class="ai-chat-header">
+        <div id="aiChatBox" class="ai-chat-box" style="display: none; flex-direction: column; position: absolute; bottom: 60px; right: 0; width: 320px; height: 420px; background: #fff; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); overflow: hidden; border: 1px solid #ddd;">
+            <div class="ai-chat-header" style="background: #2c3e50; color: #fff; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <strong>Sur Halı Yapay Zeka Asistanı</strong>
-                    <small>Size nasıl yardımcı olabilirim?</small>
+                    <strong style="font-size: 14px;">Sur Halı Asistanı</strong><br>
+                    <small style="font-size: 11px; opacity: 0.8;">Size nasıl yardımcı olabilirim?</small>
                 </div>
-                <button type="button" id="aiChatClose" class="ai-chat-close">&times;</button>
+                <button type="button" id="aiChatClose" onclick="document.getElementById('aiChatBox').style.display='none';" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">&times;</button>
             </div>
-            <div id="aiChatMessages" class="ai-chat-messages">
-                <div class="ai-msg ai-msg-bot">
-                    Merhaba! Ben Sur Halı dijital asistanıyım. Ölçülerinize uygun halı, kaymaz yolluk modelleri veya metre fiyatları hakkında bana soru sorabilirsiniz! 😊
+            <div id="aiChatMessages" class="ai-chat-messages" style="flex: 1; padding: 12px; overflow-y: auto; font-size: 13px; background: #f9f9f9;">
+                <div class="ai-msg ai-msg-bot" style="background: #e9ecef; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px;">
+                    Merhaba! Ben Sur Halı dijital asistanıyım. Ölçülerinize uygun halı, kaymaz yolluk modelleri veya fiyatlar hakkında bana soru sorabilirsiniz! 😊
                 </div>
             </div>
-            <div class="ai-chat-input-area">
-                <input type="text" id="aiChatInput" placeholder="Mesajınızı yazın..." />
-                <button type="button" id="aiChatSend">Gönder</button>
+            <div class="ai-chat-input-area" style="padding: 10px; border-top: 1px solid #ddd; display: flex; background: #fff;">
+                <input type="text" id="aiChatInput" placeholder="Mesajınızı yazın..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 13px;" />
+                <button type="button" id="aiChatSend" style="margin-left: 6px; padding: 8px 12px; background: #2c3e50; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Gönder</button>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT BAĞLANTISI (Yapay Zeka ve Ürünler İçin ZORUNLU) -->
-    <script src="site.js"></script>
+    <!-- JAVASCRIPT BAĞLANTISI (js/ Klasörüne Bağlandı) -->
+    <script src="js/site.js"></script>
 </body>
 </html>
