@@ -10,7 +10,7 @@
     <meta name="keywords" content="sur halı, sur halı iznik, iznik halı, kaymaz taban halı">
     <meta name="robots" content="index, follow">
 
-    <!-- Doğru Klasör Yolu ve Versiyonlu CSS -->
+    <!-- CSS Dosyası -->
     <link rel="stylesheet" href="css/style.css?v=6.0">
 </head>
 
@@ -23,7 +23,7 @@
         <div class="header-container">
 
             <a href="index.html" class="logo-link">
-                <img src="assets/images/logo.jpeg" alt="Sur Halı İznik" class="site-logo">
+                <img src="images/logo.jpeg" alt="Sur Halı İznik" class="site-logo">
             </a>
 
             <nav class="main-nav">
@@ -99,7 +99,7 @@
             <div class="category-grid">
                 <a href="halilar.html" class="category-card" data-category="Halılar">
                     <div class="category-cover">
-                        <img alt="Halılar kapak">
+                        <img src="images/halilar-kat.jpg" alt="Halılar kapak">
                         <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
                     </div>
                     <div class="category-card-content">
@@ -112,7 +112,7 @@
 
                 <a href="halilar.html?category=Klasik%20Yolluklar" class="category-card" data-category="Klasik Yolluklar">
                     <div class="category-cover">
-                        <img alt="Klasik Yolluklar kapak">
+                        <img src="images/klasik-kat.jpg" alt="Klasik Yolluklar kapak">
                         <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
                     </div>
                     <div class="category-card-content">
@@ -125,7 +125,7 @@
 
                 <a href="halilar.html?category=Sisal" class="category-card" data-category="Sisal">
                     <div class="category-cover">
-                        <img alt="Sisal kapak">
+                        <img src="images/sisal-kat.jpg" alt="Sisal kapak">
                         <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
                     </div>
                     <div class="category-card-content">
@@ -138,7 +138,7 @@
 
                 <a href="halilar.html?category=Kaymaz" class="category-card" data-category="Kaymaz">
                     <div class="category-cover">
-                        <img alt="Kaymaz kapak">
+                        <img src="images/kaymaz-kat.jpg" alt="Kaymaz kapak">
                         <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
                     </div>
                     <div class="category-card-content">
@@ -151,7 +151,7 @@
 
                 <a href="halilar.html?category=%C3%96zel%20Kesim" class="category-card" data-category="Özel Kesim">
                     <div class="category-cover">
-                        <img alt="Özel Kesim kapak">
+                        <img src="images/ozel-kesim-kat.jpg" alt="Özel Kesim kapak">
                         <span class="category-cover-placeholder" aria-hidden="true">Sur Halı</span>
                     </div>
                     <div class="category-card-content">
@@ -226,32 +226,34 @@
     </footer>
 
     <!-- ==================================================
-         SUR HALI AI CHATBOT (Orijinal ID ve Yapı)
+         SUR HALI AI CHATBOT
     =================================================== -->
-    <!-- ==================================================
-     SUR HALI AI CHATBOT (Kesin Çözüm Yapısı)
-=================================================== -->
-<div id="aiChatWrapper" class="ai-chat-wrapper" style="position: relative; z-index: 999999;">
-    <button type="button" id="aiChatToggle" class="ai-chat-toggle" aria-label="Sur Halı Asistanı" onclick="var box = document.getElementById('aiChatBox'); box.style.setProperty('display', box.style.display === 'none' ? 'flex' : 'none', 'important');">
-        💬 <span>Sur Halı Asistanı</span>
-    </button>
+    <div id="aiChatWrapper" class="ai-chat-wrapper">
+        <button type="button" id="aiChatToggle" class="ai-chat-toggle" aria-label="Sur Halı Asistanı">
+            💬 <span>Sur Halı Asistanı</span>
+        </button>
 
-    <div id="aiChatBox" class="ai-chat-box" style="display: flex;">
-        <div class="ai-chat-header">
-            <div>
-                <strong>Sur Halı Yapay Zeka Asistanı</strong>
-                <small>Size nasıl yardımcı olabilirim?</small>
+        <div id="aiChatBox" class="ai-chat-box" style="display: none;">
+            <div class="ai-chat-header">
+                <div>
+                    <strong>Sur Halı Yapay Zeka Asistanı</strong>
+                    <small>Size nasıl yardımcı olabilirim?</small>
+                </div>
+                <button type="button" id="aiChatClose" class="ai-chat-close">&times;</button>
             </div>
-            <button type="button" id="aiChatClose" class="ai-chat-close" style="cursor: pointer; position: relative; z-index: 9999999; padding: 10px;" onclick="document.getElementById('aiChatBox').style.setProperty('display', 'none', 'important');">&times;</button>
-        </div>
-        <div id="aiChatMessages" class="ai-chat-messages">
-            <div class="ai-msg ai-msg-bot">
-                Merhaba! Ben Sur Halı dijital asistanıyım. Ölçülerinize uygun halı, kaymaz yolluk modelleri veya metre fiyatları hakkında bana soru sorabilirsiniz! 😊
+            <div id="aiChatMessages" class="ai-chat-messages">
+                <div class="ai-msg ai-msg-bot">
+                    Merhaba! Ben Sur Halı dijital asistanıyım. Ölçülerinize uygun halı, kaymaz yolluk modelleri veya metre fiyatları hakkında bana soru sorabilirsiniz! 😊
+                </div>
             </div>
-        </div>
-        <div class="ai-chat-input-area">
-            <input type="text" id="aiChatInput" placeholder="Mesajınızı yazın..." />
-            <button type="button" id="aiChatSend">Gönder</button>
+            <div class="ai-chat-input-area">
+                <input type="text" id="aiChatInput" placeholder="Mesajınızı yazın..." />
+                <button type="button" id="aiChatSend">Gönder</button>
+            </div>
         </div>
     </div>
-</div>
+
+    <!-- JAVASCRIPT BAĞLANTISI (Yapay Zeka ve Ürünler İçin ZORUNLU) -->
+    <script src="site.js"></script>
+</body>
+</html>
