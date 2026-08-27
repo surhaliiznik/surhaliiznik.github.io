@@ -664,89 +664,96 @@ async function siteyiBaslat() {
 }
 
 /* ==========================================================
-   SUR HALI AI CHATBOT MANTIĞI (GEMINI API)
+   SUR HALI AI CHATBOT MANTIĞI
    ========================================================== */
 
-// Yeni Gemini API Anahtarı (GitHub engeline takılmaması için bölündü)
-const k1 = "AQ.Ab8RN6IH1H3h_AV46sqlSmeO";
-const k2 = "GhaPUj5Dnf_AqMHpsNU-V1DxNg";
-const GEMINI_API_KEY = k1 + k2;
+// Not: Yapay zeka servis anahtarınızı buraya tanımlayın
+const k1 = "AIzaSy_BURAYA_ANAHTARIN_ILK_YARISI";
+const k2 = "BURAYA_ANAHTARIN_IKINCI_YARISI";
+const AI_API_KEY = k1 + k2;
 
-function aiChatbotBaslat() {
-    const toggleBtn = document.getElementById("aiChatToggle");
-    const closeBtn = document.getElementById("aiChatClose");
+document.addEventListener("DOMContentLoaded", function () {
     const chatBox = document.getElementById("aiChatBox");
+    const closeBtn = document.getElementById("aiChatClose");
+    const toggleBtn = document.getElementById("aiChatToggle");
     const sendBtn = document.getElementById("aiChatSend");
     const inputField = document.getElementById("aiChatInput");
     const messagesContainer = document.getElementById("aiChatMessages");
 
-    if (!toggleBtn || !chatBox || !sendBtn || !inputField) return;
-
-    toggleBtn.onclick = function() {
-        chatBox.hidden = !chatBox.hidden;
-        if (!chatBox.hidden) {
-            inputField.focus();
-        }
-    };
-
-    if (closeBtn) {
-        closeBtn.onclick = function() {
-            chatBox.hidden = true;
+    // Pencere Açma / Kapama Mantığı
+    if (toggleBtn && chatBox) {
+        toggleBtn.onclick = function (e) {
+            e.preventDefault();
+            if (chatBox.style.display === "none" || chatBox.style.display === "") {
+                chatBox.style.display = "flex";
+                if (inputField) inputField.focus();
+            } else {
+                chatBox.style.display = "none";
+            }
         };
     }
 
+    if (closeBtn && chatBox) {
+        closeBtn.onclick = function (e) {
+            e.preventDefault();
+            chatBox.style.display = "none";
+        };
+    }
+
+    // Mesaj Gönderme Fonksiyonu
     async function mesajGonder() {
+        if (!inputField || !messagesContainer) return;
         const text = inputField.value.trim();
         if (!text) return;
 
+        // Kullanıcı Mesajı
         const userMsg = document.createElement("div");
         userMsg.className = "ai-msg ai-msg-user";
+        userMsg.style.cssText = "background:#2c3e50; color:#fff; padding:8px 12px; border-radius:8px; margin-bottom:8px; text-align:right;";
         userMsg.textContent = text;
         messagesContainer.appendChild(userMsg);
 
         inputField.value = "";
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+        // Bot Bekliyor Mesajı
         const botMsg = document.createElement("div");
         botMsg.className = "ai-msg ai-msg-bot";
+        botMsg.style.cssText = "background:#e9ecef; padding:8px 12px; border-radius:8px; margin-bottom:8px;";
         botMsg.textContent = "Düşünüyor...";
         messagesContainer.appendChild(botMsg);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         try {
+            // Supabase Ürün Detaylarını Al
             const urunler = window.surHaliProducts ? Object.values(window.surHaliProducts) : [];
-            const urunOzeti = urunler.map(u => 
-                `- ${u.name} (Kategori: ${u.category}, Fiyat: ${u.price || u.meter_price || 'Bilgi yok'} TL, Açıklama: ${u.description || 'Yok'})`
-            ).join("\n");
+            const urunOzeti = urunler.length > 0 
+                ? urunler.map(u => `- ${u.title || u.name} (Fiyat: ${u.price || 'Bilgi yok'} TL)`).join("\n")
+                : "Özel kesim yolluklar, yıkanabilir halılar ve sisal modelleri.";
 
-            const systemPrompt = `Sen Sur Halı mağazasının yardımsever ve nazik dijital asistanısın.
-Mağazamızda bulunan güncel ürünler ve bilgileri şunlardır:
+            const systemPrompt = `Sen Bursa İznik'te bulunan Sur Halı mağazasının yardımsever ve nazik dijital asistanısın.
+Mevcut Ürünler/Bilgiler:
 ${urunOzeti}
 
-Müşterilerin sorularına kısa, net, samimi ve Türkçe cevaplar ver. 
-Ölçü, özel kesim, metre fiyatı veya yıkanabilir halılar hakkında bilgi ver. 
-Tam detay veremediğin durumlarda müşteriyi WhatsApp hattımıza yönlendir.`;
+Müşterilerin sorularına kısa, net, samimi yanıtlar ver. Ölçü, özel kesim, metre fiyatı veya yıkanabilir halılar hakkında bilgi ver. Tam detay veremediğin durumlarda WhatsApp hattımıza yönlendir.`;
 
-           // Yeni key yapısına uygun Header (Başlık) bazlı istek
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
-    method: "POST",
-    headers: { 
-        "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY 
-    },
-    body: JSON.stringify({
-        contents: [{
-            role: "user",
-            parts: [{ text: `${systemPrompt}\n\nMüşteri Sorusu: ${text}` }]
-        }]
-    })
-});
+            // API İsteği
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: `${systemPrompt}\n\nMüşteri Sorusu: ${text}` }]
+                    }]
+                })
+            });
 
             const data = await response.json();
 
             if (data.error) {
-                console.error("Gemini API Hata Detayı:", data.error);
-                botMsg.textContent = "API Hatası: " + (data.error.message || "Erişim sağlanamadı.");
+                console.error("API Hatası:", data.error);
+                botMsg.textContent = "Şu an bağlantı kurulamıyor, dilerseniz WhatsApp hattımızdan bize ulaşabilirsiniz.";
                 return;
             }
 
@@ -754,125 +761,19 @@ const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/m
             botMsg.textContent = reply;
 
         } catch (error) {
-            console.error("AI Bağlantı Hatası:", error);
+            console.error("Bağlantı Hatası:", error);
             botMsg.textContent = "Bir bağlantı hatası oluştu. Lütfen daha sonra tekrar deneyin.";
         }
 
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    sendBtn.onclick = mesajGonder;
-    inputField.onkeypress = function(e) {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            mesajGonder();
-        }
-    };
-}
-
-/* ==========================================================
-   DOM HAZIR (TEKİL OLAY DİNLENMESİ)
-   ========================================================== */
-
-document.addEventListener("DOMContentLoaded", function () {
-    siteyiBaslat();
-    aiChatbotBaslat();
-});
-// ==================================================
-// SUR HALI YAPAY ZEKA ASİSTANI (GÜNCEL MODEL & DÜZGÜN AÇILMA/KAPANMA)
-// ==================================================
-
-// Chatbot Penceresini Aç / Kapat Fonksiyonu
-window.toggleChat = function() {
-    const chatWindow = document.getElementById("chat-window");
-    if (chatWindow) {
-        // 'active' class'ını ekler veya çıkarır
-        chatWindow.classList.toggle("active");
-    }
-};
-
-// Mesaj Gönderme Fonksiyonu (Google Gemini API Entegrasyonu)
-window.mesajGonder = async function() {
-    const inputField = document.getElementById("chat-input");
-    const messagesContainer = document.getElementById("chat-messages");
-    if (!inputField || !messagesContainer) return;
-
-    const userText = inputField.value.trim();
-    if (!userText) return;
-
-    // 1. Kullanıcının yazdığı mesajı ekrana bas
-    appendMessage("user", userText);
-    inputField.value = "";
-
-    // 2. Yanıt bekleniyor göstergesi ekle
-    const typingIndicator = appendMessage("bot", "Yazıyor...");
-
-    try {
-        // En güncel gemini-3.6-flash modeli kullanımı
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                contents: [{
-                    role: "user",
-                    parts: [{ text: `Sen Bursa İznik'te bulunan Sur Halı mağazasının müşteri temsilcisisin. Mağazamızda makine halıları, yıkanabilir kaymaz yolluklar ve sisal halılar bulunmaktadır. Müşterilere samimi, nazik ve kısa yanıtlar ver.\n\nMüşteri: ${userText}` }]
-                }]
-            })
-        });
-
-        const data = await response.json();
-
-        // Bekliyor yazısını kaldır
-        if (typingIndicator && typingIndicator.parentNode) {
-            typingIndicator.parentNode.removeChild(typingIndicator);
-        }
-
-        // Başarılı yanıtı ekrana yaz
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-            appendMessage("bot", data.candidates[0].content.parts[0].text);
-        } else {
-            appendMessage("bot", "Şu an yanıt verilemiyor. Dilerseniz WhatsApp hattımızdan ulaşabilirsiniz.");
-        }
-    } catch (error) {
-        if (typingIndicator && typingIndicator.parentNode) {
-            typingIndicator.parentNode.removeChild(typingIndicator);
-        }
-        appendMessage("bot", "Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
-    }
-};
-
-function appendMessage(sender, text) {
-    const container = document.getElementById("chat-messages");
-    if (!container) return null;
-    const div = document.createElement("div");
-    div.className = `chat-message ${sender}-message`;
-    div.innerHTML = `<p>${text.replace(/\n/g, "<br>")}</p>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-    return div;
-}
-document.addEventListener("DOMContentLoaded", function () {
-    const chatBox = document.getElementById("aiChatBox");
-    const closeBtn = document.getElementById("aiChatClose");
-    const toggleBtn = document.getElementById("aiChatToggle");
-
-    if (closeBtn && chatBox) {
-        closeBtn.onclick = function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            chatBox.setAttribute("style", "display: none !important;");
-        };
-    }
-
-    if (toggleBtn && chatBox) {
-        toggleBtn.onclick = function (e) {
-            e.preventDefault();
-            if (window.getComputedStyle(chatBox).display === "none") {
-                chatBox.setAttribute("style", "display: flex !important;");
-            } else {
-                chatBox.setAttribute("style", "display: none !important;");
+    if (sendBtn) sendBtn.onclick = mesajGonder;
+    if (inputField) {
+        inputField.onkeypress = function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                mesajGonder();
             }
         };
     }
