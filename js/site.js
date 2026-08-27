@@ -1,19 +1,28 @@
 /* ==========================================================
-   SUR HALI - SUPABASE ÜRÜN VE GROQ AI SİSTEMİ
+   SUR HALI - TEMİZ DİNAMİK SİSTEM & GROQ AI
    ========================================================== */
 
-// GROQ API Yapılandırması (Anahtarınızı k1 ve k2 olarak ikiye bölüp yazın)
+// 1. SUPABASE VE GROQ YAPILANDIRMASI
 const k1 = "gsk_u5KWLJTxoEELp1A3uuqnWGdyb3F";
 const k2 = "Y7TcplifimkodWThTgWlgWUlL";
+
+const k1 = "gsk_BURAYA_GROQ_KEY_ILK_YARISI";
+const k2 = "BURAYA_GROQ_KEY_IKINCI_YARISI";
 const GROQ_API_KEY = k1 + k2;
 
-// 1. SUPABASE'DEN DİNAMİK ÜRÜN & RESİM ÇEKME
+// Supabase İstemcisi Başlatma
+let supabaseClient = null;
+if (typeof supabase !== 'undefined') {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+// 2. SUPABASE'DEN ÜRÜNLERİ VE RESİMLERİ ÇEKME
 async function loadFeaturedProducts() {
     const container = document.getElementById('featuredProducts');
     if (!container) return;
 
     try {
-        if (typeof supabaseClient === 'undefined') {
+        if (!supabaseClient) {
             container.innerHTML = '<p>Veritabanı bağlantısı bekleniyor...</p>';
             return;
         }
@@ -29,11 +38,11 @@ async function loadFeaturedProducts() {
             return;
         }
 
-        // Supabase resim URL'lerini ve ürünleri ekrana bas
+        // Admin panelinden gelen resimleri ve fiyatları bas
         container.innerHTML = products.map(product => `
             <div class="product-card">
                 <div class="product-image">
-                    <img src="${product.image_url || 'assets/images/logo.jpeg'}" alt="${product.title || 'Halı Model'}" loading="lazy">
+                    <img src="${product.image_url || 'assets/images/logo.jpeg'}" alt="${product.title || 'Halı'}" loading="lazy">
                 </div>
                 <div class="product-info">
                     <h3>${product.title || product.name}</h3>
@@ -44,12 +53,12 @@ async function loadFeaturedProducts() {
         `).join('');
 
     } catch (err) {
-        console.error("Ürünler çekilirken hata:", err);
+        console.error("Ürün yükleme hatası:", err);
         container.innerHTML = '<p>Ürünler yüklenirken bir sorun oluştu.</p>';
     }
 }
 
-// 2. GROQ YAPAY ZEKA ASİSTANI
+// 3. GROQ YAPAY ZEKA ASİSTANI
 async function askGroqAI(userMessage) {
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -78,12 +87,10 @@ async function askGroqAI(userMessage) {
     }
 }
 
-// 3. SAYFA VE SOHBET BAŞLATICI
+// 4. SAYFA YÜKLENDİĞİNDE ÇALIŞACAK TEKİK TETİKLEYİCİ
 document.addEventListener("DOMContentLoaded", function () {
-    // Ürünleri yükle
     loadFeaturedProducts();
 
-    // Chatbot elemanları
     const chatBox = document.getElementById("aiChatBox");
     const closeBtn = document.getElementById("aiChatClose");
     const toggleBtn = document.getElementById("aiChatToggle");
@@ -111,12 +118,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const text = inputField.value.trim();
         if (!text) return;
 
-        // Kullanıcı mesajı
         messagesContainer.innerHTML += `<div class="ai-msg ai-msg-user" style="background:#2c3e50; color:#fff; padding:8px 12px; border-radius:8px; margin-bottom:8px; text-align:right;">${text}</div>`;
         inputField.value = "";
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        // Yükleniyor mesajı
         const botMsg = document.createElement("div");
         botMsg.className = "ai-msg ai-msg-bot";
         botMsg.style.cssText = "background:#e9ecef; padding:8px 12px; border-radius:8px; margin-bottom:8px;";
@@ -124,7 +129,6 @@ document.addEventListener("DOMContentLoaded", function () {
         messagesContainer.appendChild(botMsg);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        // Groq API'den yanıt al
         const reply = await askGroqAI(text);
         botMsg.textContent = reply;
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
