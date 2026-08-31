@@ -6,6 +6,9 @@ var SUR_SUPABASE_KEY = "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
 var GROQ_K1 = "gsk_1XmszSHMd9GCOKVsfN44WGdyb3";
 var GROQ_K2 = "FYIa5eKHxX5TchnxdWZvVQJZP5";
 
+// Groq API anahtarını birleştirme
+var GROQ_API_KEY = GROQ_K1 + GROQ_K2;
+
 // Supabase İstemcisi
 var supabaseClient = null;
 if (typeof supabase !== 'undefined') {
@@ -27,26 +30,37 @@ async function loadFeaturedProducts() {
             .from('products')
             .select('*');
 
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase sorgu hatası:", error);
+            throw error;
+        }
 
         if (!products || products.length === 0) {
             container.innerHTML = '<p>Henüz ürün eklenmedi.</p>';
             return;
         }
 
-        // Admin panelinden gelen resimleri ve fiyatları bas
-        container.innerHTML = products.map(product => `
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="${product.image_url || 'assets/images/logo.jpeg'}" alt="${product.title || 'Halı'}" loading="lazy">
+        // Resim URL Kontrolü ve Basım
+        container.innerHTML = products.map(product => {
+            const title = product.title || product.name || 'Halı';
+            const price = product.price || product.meter_price || 'Fiyat Belirtilmedi';
+            
+            // Resim URL var mı, yoksa varsayılan resim koy
+            let imgSrc = product.image_url || product.image || 'assets/images/logo.jpeg';
+
+            return `
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="${imgSrc}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
+                    </div>
+                    <div class="product-info">
+                        <h3>${title}</h3>
+                        <p class="product-price">${price} TL</p>
+                        <a href="https://wa.me/905396369095?text=Merhaba,%20${encodeURIComponent(title)}%20hakkında%20bilgi%20almak%20istiyorum" target="_blank" class="primary-button">WhatsApp ile Sipariş</a>
+                    </div>
                 </div>
-                <div class="product-info">
-                    <h3>${product.title || product.name}</h3>
-                    <p class="product-price">${product.price || product.meter_price || 'Fiyat Belirtilmedi'} TL</p>
-                    <a href="https://wa.me/905396369095?text=Merhaba,%20${encodeURIComponent(product.title || product.name)}%20hakkında%20bilgi%20almak%20istiyorum" target="_blank" class="primary-button">WhatsApp ile Sipariş</a>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
     } catch (err) {
         console.error("Ürün yükleme hatası:", err);
