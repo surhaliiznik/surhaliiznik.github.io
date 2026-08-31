@@ -1,35 +1,17 @@
-/* SUR HALI - ORİJİNAL DÜZEN VE GÜVENLİ SİSTEM */
+/* SUR HALI - KESİN ÇALIŞAN GITHUB KODU */
 
 const SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
 const SUR_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobHRvbHJ0Z25ma2J3ZmtwYWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTExNjYsImV4cCI6MjEwMTY4NzE2Nn0.y8OryUG7jK2lvDwKD6Y61oqPJnzKzd9RWohRQc1bBgw";
+const GROQ_API_KEY = "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";
 
-const GROQ_K1 = "gsk_1XmszSHMd9GCOKVsfN44WGdyb3";
-const GROQ_K2 = "FYIa5eKHxX5TchnxdWZvVQJZP5";
-const GROQ_API_KEY = GROQ_K1 + GROQ_K2;
+window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
 
-/* SUR HALI - ÇAKIŞMASIZ BAĞLANTI (v2) */
-
-window.SUR_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
-window.SUR_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobHRvbHJ0Z25ma2J3ZmtwYWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTExNjYsImV4cCI6MjEwMTY4NzE2Nn0.y8OryUG7jK2lvDwKD6Y61oqPJnzKzd9RWohRQc1bBgw";
-
-// 'supabaseClient' yerine 'surHaliClient' adını kullandık (Çakışma imkansız)
-window.surHaliClient = null;
-
-if (typeof window.supabase !== 'undefined') {
-    window.surHaliClient = window.supabase.createClient(window.SUR_URL, window.SUR_KEY);
-}
-// ÜRÜNLERİ YÜKLEME
 async function loadFeaturedProducts() {
     const container = document.getElementById('featuredProducts');
-    if (!container) return;
+    if (!container || !window.surClient) return;
 
     try {
-        if (!supabaseClient) return;
-
-        const { data: products, error } = await supabaseClient
-            .from('products')
-            .select('*');
-
+        const { data: products, error } = await window.surClient.from('products').select('*');
         if (error || !products || products.length === 0) return;
 
         container.innerHTML = products.map(product => {
@@ -50,13 +32,11 @@ async function loadFeaturedProducts() {
                 </div>
             `;
         }).join('');
-
     } catch (err) {
         console.error("Ürün yükleme hatası:", err);
     }
 }
 
-// GROQ YAPAY ZEKA ASİSTANI
 async function askGroqAI(userMessage) {
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -68,24 +48,18 @@ async function askGroqAI(userMessage) {
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [
-                    {
-                        role: "system",
-                        content: "Sen Bursa İznik'te bulunan Sur Halı mağazasının yardımsever dijital asistanısın. Müşterilere makine halıları, yıkanabilir kaymaz yolluklar, sisal halılar ve özel ölçü kesimleri hakkında samimi, kısa ve nazik bilgiler ver."
-                    },
+                    { role: "system", content: "Sen Bursa İznik'te bulunan Sur Halı mağazasının yardımsever dijital asistanısın. Müşterilere makine halıları, yıkanabilir kaymaz yolluklar, sisal halılar ve özel ölçü kesimleri hakkında samimi, kısa ve nazik bilgiler ver." },
                     { role: "user", content: userMessage }
                 ]
             })
         });
-
         const data = await response.json();
         return data.choices?.[0]?.message?.content || "Şu an yanıt veremiyorum, dilerseniz WhatsApp hattımızdan (0539 636 90 95) ulaşabilirsiniz.";
     } catch (error) {
-        console.error("Groq AI Hatası:", error);
         return "Bağlantı hatası oluştu. Lütfen tekrar deneyin.";
     }
 }
 
-// SAYFA TETİKLEYİCİSİ
 document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
 
