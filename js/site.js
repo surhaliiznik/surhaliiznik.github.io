@@ -1,20 +1,15 @@
-/* ==========================================================
-   SUR HALI - TEMİZ DİNAMİK SİSTEM & GROQ AI
-   ========================================================== */
+/* SUR HALI - TEMİZ SİSTEM (v101.0) */
 
-// 1. SUPABASE VE GROQ YAPILANDIRMASI
-const SUPABASE_URL = "//https://lhltolrtgnfkbwfkpaex.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
+var SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
+var SUR_SUPABASE_KEY = "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
 
-// Groq API Anahtarı (Sadece 1 kez tanımlanmalıdır)
-const k1 = "gsk_1XmszSHMd9GCOKVsfN44WGdyb3";
-const k2 = "FYIa5eKHxX5TchnxdWZvVQJZP5";
-const GROQ_API_KEY = k1 + k2;
+var GROQ_K1 = "gsk_1XmszSHMd9GCOKVsfN44WGdyb3";
+var GROQ_K2 = "FYIa5eKHxX5TchnxdWZvVQJZP5";
 
-// Supabase İstemcisi Başlatma
-let supabaseClient = null;
+// Supabase İstemcisi
+var supabaseClient = null;
 if (typeof supabase !== 'undefined') {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY);
 }
 
 // 2. SUPABASE'DEN ÜRÜNLERİ VE RESİMLERİ ÇEKME
