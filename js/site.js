@@ -3,8 +3,8 @@
    ========================================================== */
 
 // 1. SUPABASE VE GROQ YAPILANDIRMASI
-const SUPABASE_URL = "https://BURAYA_SUPABASE_URL_YAZIN.supabase.co";
-const SUPABASE_ANON_KEY = "BURAYA_SUPABASE_ANON_KEY_YAZIN";
+const SUPABASE_URL = "//https://lhltolrtgnfkbwfkpaex.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
 
 // Groq API Anahtarı (Sadece 1 kez tanımlanmalıdır)
 const k1 = "gsk_BURAYA_GROQ_KEY_ILK_YARISI";
