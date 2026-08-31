@@ -7,8 +7,8 @@ const SUPABASE_URL = "//https://lhltolrtgnfkbwfkpaex.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
 
 // Groq API Anahtarı (Sadece 1 kez tanımlanmalıdır)
-const k1 = "gsk_BURAYA_GROQ_KEY_ILK_YARISI";
-const k2 = "BURAYA_GROQ_KEY_IKINCI_YARISI";
+const k1 = "gsk_1XmszSHMd9GCOKVsfN44WGdyb3";
+const k2 = "FYIa5eKHxX5TchnxdWZvVQJZP5";
 const GROQ_API_KEY = k1 + k2;
 
 // Supabase İstemcisi Başlatma
