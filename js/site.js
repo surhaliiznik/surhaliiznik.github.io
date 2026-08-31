@@ -3,9 +3,10 @@
    ========================================================== */
 
 // 1. SUPABASE VE GROQ YAPILANDIRMASI
-const k1 = "gsk_u5KWLJTxoEELp1A3uuqnWGdyb3F";
-const k2 = "Y7TcplifimkodWThTgWlgWUlL";
+const SUPABASE_URL = "https://BURAYA_SUPABASE_URL_YAZIN.supabase.co";
+const SUPABASE_ANON_KEY = "BURAYA_SUPABASE_ANON_KEY_YAZIN";
 
+// Groq API Anahtarı (Sadece 1 kez tanımlanmalıdır)
 const k1 = "gsk_BURAYA_GROQ_KEY_ILK_YARISI";
 const k2 = "BURAYA_GROQ_KEY_IKINCI_YARISI";
 const GROQ_API_KEY = k1 + k2;
@@ -87,7 +88,7 @@ async function askGroqAI(userMessage) {
     }
 }
 
-// 4. SAYFA YÜKLENDİĞİNDE ÇALIŞACAK TEKİK TETİKLEYİCİ
+// 4. SAYFA YÜKLENDİĞİNDE ÇALIŞACAK TETİKLEYİCİ
 document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
 
