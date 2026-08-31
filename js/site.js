@@ -7,12 +7,17 @@ const GROQ_K1 = "gsk_1XmszSHMd9GCOKVsfN44WGdyb3";
 const GROQ_K2 = "FYIa5eKHxX5TchnxdWZvVQJZP5";
 const GROQ_API_KEY = GROQ_K1 + GROQ_K2;
 
-// Supabase İstemcisi
-let supabaseClient = null;
-if (typeof window.supabase !== 'undefined') {
-    supabaseClient = window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY);
-}
+/* SUR HALI - ÇAKIŞMASIZ BAĞLANTI (v2) */
 
+window.SUR_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
+window.SUR_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobHRvbHJ0Z25ma2J3ZmtwYWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTExNjYsImV4cCI6MjEwMTY4NzE2Nn0.y8OryUG7jK2lvDwKD6Y61oqPJnzKzd9RWohRQc1bBgw";
+
+// 'supabaseClient' yerine 'surHaliClient' adını kullandık (Çakışma imkansız)
+window.surHaliClient = null;
+
+if (typeof window.supabase !== 'undefined') {
+    window.surHaliClient = window.supabase.createClient(window.SUR_URL, window.SUR_KEY);
+}
 // ÜRÜNLERİ YÜKLEME
 async function loadFeaturedProducts() {
     const container = document.getElementById('featuredProducts');
