@@ -1,20 +1,18 @@
-/* SUR HALI - KESİN ÇALIŞAN GÜNCEL KOD */
+/* SUR HALI - KESİN ÇALIŞAN GİTHUB JS KODU */
 
 const SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
 const SUR_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobHRvbHJ0Z25ma2J3ZmtwYWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTExNjYsImV4cCI6MjEwMTY4NzE2Nn0.y8OryUG7jK2lvDwKD6Y61oqPJnzKzd9RWohRQc1bBgw";
 const GROQ_API_KEY = "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";
 
-const STORAGE_PUBLIC_URL = `${SUR_SUPABASE_URL}/storage/v1/object/public/halilar/`;
-
 window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
 
-// 1. ÖNE ÇIKAN ÜRÜNLERİ YÜKLE
+// ÜRÜNLERİ YÜKLE
 async function loadFeaturedProducts() {
     const container = document.getElementById('featuredProducts');
     if (!container || !window.surClient) return;
 
     try {
-        // Tablodaki tüm kayıtları çekiyoruz (is_featured filtresi kaldırıldı)
+        // Filte kullanmadan doğrudan ürünleri çekiyoruz
         const { data: products, error } = await window.surClient
             .from('products')
             .select('*');
@@ -25,15 +23,13 @@ async function loadFeaturedProducts() {
         }
 
         container.innerHTML = products.map(product => {
-            const title = product.name || product.title || 'Halı Model';
-            const price = product.price || product.meter_price ? `${product.price || product.meter_price} TL` : 'Fiyat Belirtilmedi';
+            const title = product.name || 'Halı Model';
+            const price = product.price ? `${product.price} TL` : 'Fiyat Belirtilmedi';
             
-            let rawImg = product.image_url || product.image || product.cover_image;
-            let imgSrc = 'assets/images/logo.jpeg';
-
-            if (rawImg) {
-                imgSrc = rawImg.startsWith('http') ? rawImg : `${STORAGE_PUBLIC_URL}${rawImg}`;
-            }
+            // Eğer image_url varsa onu kullan, yoksa veya NULL ise varsayılan logoyu bas
+            let imgSrc = (product.image_url && product.image_url.trim() !== '') 
+                ? product.image_url 
+                : 'assets/images/logo.jpeg';
 
             return `
                 <div class="product-card">
@@ -50,40 +46,6 @@ async function loadFeaturedProducts() {
         }).join('');
     } catch (err) {
         console.error("Ürün yükleme hatası:", err);
-    }
-}
-
-// 2. KOLEKSİYON KAPAK RESİMLERİNİ YÜKLE (category_covers tablosundan)
-async function loadCategoryCovers() {
-    if (!window.surClient) return;
-
-    try {
-        const { data: covers, error } = await window.surClient
-            .from('category_covers')
-            .select('*');
-
-        if (error || !covers) return;
-
-        covers.forEach(cover => {
-            // HTML içindeki data-category eşleşmesine göre kapak resmini kartın içine basar
-            const card = document.querySelector(`.category-card[data-category="${cover.category_name}"]`);
-            if (card) {
-                let imgUrl = cover.image_url || cover.image;
-                if (imgUrl && !imgUrl.startsWith('http')) {
-                    imgUrl = `${STORAGE_PUBLIC_URL}${imgUrl}`;
-                }
-
-                let imgBox = card.querySelector('.category-card-image');
-                if (!imgBox) {
-                    imgBox = document.createElement('div');
-                    imgBox.className = 'category-card-image';
-                    card.insertBefore(imgBox, card.firstChild);
-                }
-                imgBox.innerHTML = `<img src="${imgUrl}" alt="${cover.category_name}">`;
-            }
-        });
-    } catch (err) {
-        console.error("Kapak resmi yükleme hatası:", err);
     }
 }
 
@@ -113,7 +75,6 @@ async function askGroqAI(userMessage) {
 
 document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
-    loadCategoryCovers();
 
     const chatBox = document.getElementById("aiChatBox");
     const closeBtn = document.getElementById("aiChatClose");
