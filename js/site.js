@@ -1,8 +1,11 @@
-/* SUR HALI - KESİN ÇALIŞAN GITHUB KODU */
+/* SUR HALI - DÜZELTİLMİŞ GITHUB JS KODU */
 
 const SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
 const SUR_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobHRvbHJ0Z25ma2J3ZmtwYWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTExNjYsImV4cCI6MjEwMTY4NzE2Nn0.y8OryUG7jK2lvDwKD6Y61oqPJnzKzd9RWohRQc1bBgw";
 const GROQ_API_KEY = "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";
+
+// Supabase Storage Public Adresi (Sizin Projenize Özel)
+const STORAGE_PUBLIC_URL = `${SUR_SUPABASE_URL}/storage/v1/object/public/halilar/`;
 
 window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
 
@@ -11,13 +14,30 @@ async function loadFeaturedProducts() {
     if (!container || !window.surClient) return;
 
     try {
-        const { data: products, error } = await window.surClient.from('products').select('*');
-        if (error || !products || products.length === 0) return;
+        // SADECE 'is_featured' ALANI TRUE OLANLARI ÇEK
+        const { data: products, error } = await window.surClient
+            .from('products')
+            .select('*')
+            .eq('is_featured', true)
+            .order('created_at', { ascending: false });
+
+        if (error || !products || products.length === 0) {
+            container.innerHTML = '<p class="no-data" style="text-align:center; padding: 20px; color: #666;">Henüz öne çıkan ürün eklenmedi.</p>';
+            return;
+        }
 
         container.innerHTML = products.map(product => {
-            const title = product.title || product.name || 'Halı';
+            const title = product.title || product.name || 'Halı Model';
             const price = product.price || product.meter_price ? `${product.price || product.meter_price} TL` : 'Fiyat Belirtilmedi';
-            let imgSrc = product.image_url || product.image || 'assets/images/logo.jpeg';
+            
+            // RESİM URL'İNİ SUPABASE STORAGE İLE BİRLEŞTİR
+            let rawImg = product.image_url || product.image;
+            let imgSrc = 'assets/images/logo.jpeg';
+
+            if (rawImg) {
+                // Eğer zaten tam http adresi ise dokunma, değilse Supabase Public URL'i ile birleştir
+                imgSrc = rawImg.startsWith('http') ? rawImg : `${STORAGE_PUBLIC_URL}${rawImg}`;
+            }
 
             return `
                 <div class="product-card">
