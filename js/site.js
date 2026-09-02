@@ -1,41 +1,37 @@
-/* SUR HALI - DÜZELTİLMİŞ GITHUB JS KODU */
+/* SUR HALI - KESİN ÇALIŞAN GÜNCEL KOD */
 
 const SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
 const SUR_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobHRvbHJ0Z25ma2J3ZmtwYWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTExNjYsImV4cCI6MjEwMTY4NzE2Nn0.y8OryUG7jK2lvDwKD6Y61oqPJnzKzd9RWohRQc1bBgw";
 const GROQ_API_KEY = "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";
 
-// Supabase Storage Public Adresi (Sizin Projenize Özel)
 const STORAGE_PUBLIC_URL = `${SUR_SUPABASE_URL}/storage/v1/object/public/halilar/`;
 
 window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
 
+// 1. ÖNE ÇIKAN ÜRÜNLERİ YÜKLE
 async function loadFeaturedProducts() {
     const container = document.getElementById('featuredProducts');
     if (!container || !window.surClient) return;
 
     try {
-        // SADECE 'is_featured' ALANI TRUE OLANLARI ÇEK
+        // Tablodaki tüm kayıtları çekiyoruz (is_featured filtresi kaldırıldı)
         const { data: products, error } = await window.surClient
             .from('products')
-            .select('*')
-            .eq('is_featured', true)
-            .order('created_at', { ascending: false });
+            .select('*');
 
         if (error || !products || products.length === 0) {
-            container.innerHTML = '<p class="no-data" style="text-align:center; padding: 20px; color: #666;">Henüz öne çıkan ürün eklenmedi.</p>';
+            container.innerHTML = '<p class="no-data" style="text-align:center; width:100%; padding:20px;">Ürün bulunamadı.</p>';
             return;
         }
 
         container.innerHTML = products.map(product => {
-            const title = product.title || product.name || 'Halı Model';
+            const title = product.name || product.title || 'Halı Model';
             const price = product.price || product.meter_price ? `${product.price || product.meter_price} TL` : 'Fiyat Belirtilmedi';
             
-            // RESİM URL'İNİ SUPABASE STORAGE İLE BİRLEŞTİR
-            let rawImg = product.image_url || product.image;
+            let rawImg = product.image_url || product.image || product.cover_image;
             let imgSrc = 'assets/images/logo.jpeg';
 
             if (rawImg) {
-                // Eğer zaten tam http adresi ise dokunma, değilse Supabase Public URL'i ile birleştir
                 imgSrc = rawImg.startsWith('http') ? rawImg : `${STORAGE_PUBLIC_URL}${rawImg}`;
             }
 
@@ -57,6 +53,41 @@ async function loadFeaturedProducts() {
     }
 }
 
+// 2. KOLEKSİYON KAPAK RESİMLERİNİ YÜKLE (category_covers tablosundan)
+async function loadCategoryCovers() {
+    if (!window.surClient) return;
+
+    try {
+        const { data: covers, error } = await window.surClient
+            .from('category_covers')
+            .select('*');
+
+        if (error || !covers) return;
+
+        covers.forEach(cover => {
+            // HTML içindeki data-category eşleşmesine göre kapak resmini kartın içine basar
+            const card = document.querySelector(`.category-card[data-category="${cover.category_name}"]`);
+            if (card) {
+                let imgUrl = cover.image_url || cover.image;
+                if (imgUrl && !imgUrl.startsWith('http')) {
+                    imgUrl = `${STORAGE_PUBLIC_URL}${imgUrl}`;
+                }
+
+                let imgBox = card.querySelector('.category-card-image');
+                if (!imgBox) {
+                    imgBox = document.createElement('div');
+                    imgBox.className = 'category-card-image';
+                    card.insertBefore(imgBox, card.firstChild);
+                }
+                imgBox.innerHTML = `<img src="${imgUrl}" alt="${cover.category_name}">`;
+            }
+        });
+    } catch (err) {
+        console.error("Kapak resmi yükleme hatası:", err);
+    }
+}
+
+// GROQ AI CHATBOT
 async function askGroqAI(userMessage) {
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -82,6 +113,7 @@ async function askGroqAI(userMessage) {
 
 document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
+    loadCategoryCovers();
 
     const chatBox = document.getElementById("aiChatBox");
     const closeBtn = document.getElementById("aiChatClose");
