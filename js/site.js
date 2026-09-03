@@ -133,10 +133,14 @@ function getTryOnDeviceId() {
 }
 
 async function syncTryOnCredits() {
+    console.log("Sanal halı hakları kontrolü başladı.");
     const storedValue = localStorage.getItem("tryOnCredits");
     const storedCredits = Number.parseInt(storedValue, 10);
     if (storedValue !== "unlimited" && Number.isNaN(storedCredits)) localStorage.setItem("tryOnCredits", "2");
-    if (!window.surClient) return;
+    if (!window.surClient) {
+        console.error("Supabase hak kontrolü başarısız: istemci hazır değil. Yerel 2 hakla devam ediliyor.");
+        return;
+    }
 
     let { data, error } = await window.surClient
         .from("user_credits")
@@ -233,6 +237,7 @@ async function analyzeRoomImage(imageDataUrl) {
     console.log("Groq Vision analiz fonksiyonu başladı.");
     console.log("Groq Vision isteği hazırlanıyor. Görsel Base64 uzunluğu:", imageDataUrl.length);
     try {
+        console.log("Groq Vision API fetch çağrısı başlatılıyor.");
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -240,11 +245,11 @@ async function analyzeRoomImage(imageDataUrl) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.2-11b-vision-preview",
+                model: "meta-llama/llama-4-scout-17b-16e-instruct",
                 messages: [{
                     role: "user",
                     content: [
-                        { type: "text", text: "Bu oda/zemin görselini analiz et. Zemin rengi, ortam ışığı ve genel tarza göre en uygun halı renk ve modellerini kısaca söyle." },
+                        { type: "text", text: "Bu odanın zeminine uygun halı tavsiyesi ver." },
                         { type: "image_url", image_url: { url: imageDataUrl } }
                     ]
                 }]
@@ -558,7 +563,14 @@ document.addEventListener("DOMContentLoaded", function () {
     syncTryOnCredits();
 
     async function simulateRoom(file) {
-        await syncTryOnCredits();
+        console.log("simulateRoom başladı:", file.name);
+        try {
+            await syncTryOnCredits();
+        } catch (err) {
+            console.error("Supabase hak kontrolünde beklenmeyen hata, yerel hakla devam ediliyor:", err);
+            if (!localStorage.getItem("tryOnCredits")) localStorage.setItem("tryOnCredits", "2");
+        }
+        console.log("simulateRoom hak kontrolü tamamlandı. Kalan hak:", getTryOnCredits());
         if (getTryOnCredits() <= 0) {
             const limitMessage = document.createElement("div");
             limitMessage.className = "ai-msg ai-msg-bot";
@@ -584,7 +596,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             console.log("Oda görseli için Groq Vision isteği başlatılıyor.");
+            console.log("simulateRoom API isteğinin ortasında: analyzeRoomImage çağrılıyor.");
             const analysis = await analyzeRoomImage(imageDataUrl);
+            console.log("simulateRoom Vision yanıtı işlendi.");
             const matchedProducts = findAssistantProducts(analysis);
             const recommendations = matchedProducts.length ? matchedProducts : assistantProducts.slice(0, 2);
             analysisMessage.textContent = recommendations.length
@@ -599,9 +613,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 consumeTryOnCredit();
                 console.log("Oda önerileri gösterildi ve kullanım hakkı azaltıldı.");
             }
-        } catch (error) {
-            console.error("Sanal halı oda analizi başarısız:", error);
+        } catch (err) {
+            console.error("Sanal halı oda analizi başarısız:", err);
+            console.error("GİZLİ HATA DETAYI:", err);
             analysisMessage.textContent = "Oda görseli analiz edilemedi. Lütfen tekrar deneyin veya WhatsApp hattımızdan destek alın.";
+            throw err;
         }
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
