@@ -6,6 +6,74 @@ const GROQ_API_KEY = "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";
 
 window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
 
+const categoryLinks = {
+    "Halılar": "halilar.html?category=Halılar",
+    "Klasik Yolluklar": "halilar.html?category=Klasik%20Yolluklar",
+    "Sisal": "halilar.html?category=Sisal",
+    "Kaymaz": "halilar.html?category=Kaymaz",
+    "Özel Kesim": "halilar.html?category=%C3%96zel%20Kesim"
+};
+
+function escapeHTML(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function detectCategoryIntent(message) {
+    const normalizedMessage = message.toLocaleLowerCase("tr-TR");
+
+    if (normalizedMessage.includes("sisal")) return "Sisal";
+    if (normalizedMessage.includes("kaymaz")) return "Kaymaz";
+    if (normalizedMessage.includes("özel ölçü") || normalizedMessage.includes("özel olcu") || normalizedMessage.includes("özel kesim") || normalizedMessage.includes("özel kes") || normalizedMessage.includes("metreye")) return "Özel Kesim";
+    if (normalizedMessage.includes("klasik yolluk")) return "Klasik Yolluklar";
+    if (normalizedMessage.includes("yolluk")) return "Klasik Yolluklar";
+    if (normalizedMessage.includes("halı") || normalizedMessage.includes("hali") || normalizedMessage.includes("fiyat")) return "Halılar";
+
+    return null;
+}
+
+async function loadCategoryCovers() {
+    if (!window.surClient) return;
+
+    const { data: covers, error } = await window.surClient
+        .from("category_images")
+        .select("category,image_url,created_at")
+        .is("product_id", null)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Kategori kapakları yüklenemedi:", error);
+        return;
+    }
+
+    const latestCovers = {};
+    (covers || []).forEach(cover => {
+        if (cover.category && cover.image_url && !latestCovers[cover.category]) {
+            latestCovers[cover.category] = cover.image_url;
+        }
+    });
+
+    document.querySelectorAll(".category-card[data-category]").forEach(card => {
+        const imageUrl = latestCovers[card.dataset.category];
+        const image = card.querySelector(".category-cover img");
+
+        if (imageUrl && image) {
+            image.src = imageUrl;
+            image.closest(".category-cover")?.classList.add("has-image");
+        }
+    });
+
+    const heroMedia = document.querySelector("[data-hero-media]");
+    const heroImage = latestCovers["Halılar"] || Object.values(latestCovers)[0];
+    if (heroMedia && heroImage) {
+        heroMedia.style.backgroundImage = `url("${heroImage}")`;
+    }
+}
+
 // ÜRÜNLERİ YÜKLE
 async function loadFeaturedProducts() {
     const container = document.getElementById('featuredProducts');
@@ -49,8 +117,91 @@ async function loadFeaturedProducts() {
     }
 }
 
+function renderCatalogProducts(products, category) {
+    const container = document.getElementById("catalogProducts");
+    if (!container) return;
+
+    if (!products.length) {
+        container.innerHTML = `<div class="empty-state"><h2>${escapeHTML(category)}</h2><p>Bu kategoride şu anda ürün bulunamadı.</p></div>`;
+        return;
+    }
+
+    container.innerHTML = products.map(product => {
+        const title = product.name || "Halı Model";
+        const imageUrl = product.image_url || "assets/images/logo.jpeg";
+        const price = product.price ? `${escapeHTML(product.price)} TL` : "Fiyat bilgisi için iletişime geçin";
+
+        return `
+            <article class="product-card">
+                <div class="product-image">
+                    <img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
+                </div>
+                <div class="product-info">
+                    <span class="product-category">${escapeHTML(product.category || category)}</span>
+                    <h3 class="product-title">${escapeHTML(title)}</h3>
+                    <p class="product-size">${escapeHTML(product.size || "")}</p>
+                    <p class="product-price">${price}</p>
+                    <a class="primary-button product-card-button" href="https://wa.me/905396369095?text=${encodeURIComponent(`${title} hakkında bilgi almak istiyorum`)}" target="_blank" rel="noopener">WhatsApp ile Bilgi Al</a>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+async function loadCatalogProducts(category) {
+    const container = document.getElementById("catalogProducts");
+    if (!container || !window.surClient) return;
+
+    container.innerHTML = '<div class="loading-state">Ürünler yükleniyor...</div>';
+
+    const { data, error } = await window.surClient
+        .from("products")
+        .select("*")
+        .eq("category", category)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Katalog ürünleri yüklenemedi:", error);
+        container.innerHTML = '<div class="error-state">Ürünler yüklenirken bir hata oluştu.</div>';
+        return;
+    }
+
+    renderCatalogProducts((data || []).filter(product => product.is_active !== false), category);
+}
+
+function setupCatalogFilters() {
+    const filters = document.querySelectorAll(".category-filter[data-category]");
+    if (!filters.length) return;
+
+    const requestedCategory = new URLSearchParams(window.location.search).get("category");
+    const initialCategory = [...filters].some(filter => filter.dataset.category === requestedCategory)
+        ? requestedCategory
+        : filters[0].dataset.category;
+
+    function selectCategory(category, updateUrl) {
+        filters.forEach(filter => filter.classList.toggle("active", filter.dataset.category === category));
+        const title = document.getElementById("catalogTitle");
+        if (title) title.textContent = category;
+        loadCatalogProducts(category);
+
+        if (updateUrl) {
+            history.replaceState(null, "", `halilar.html?category=${encodeURIComponent(category)}`);
+        }
+    }
+
+    filters.forEach(filter => {
+        filter.addEventListener("click", () => selectCategory(filter.dataset.category, true));
+    });
+    selectCategory(initialCategory, false);
+}
+
 // GROQ AI CHATBOT
 async function askGroqAI(userMessage) {
+    const category = detectCategoryIntent(userMessage);
+    const categoryInstruction = category
+        ? ` Kullanıcı ${category} kategorisiyle ilgileniyor. Yanıtının sonunda ${category} kategorisini inceleyebileceğini belirt.`
+        : " Kategori net değilse kullanıcıdan tercihlerini veya ölçüsünü sor.";
+
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
@@ -61,7 +212,7 @@ async function askGroqAI(userMessage) {
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [
-                    { role: "system", content: "Sen Bursa İznik'te bulunan Sur Halı mağazasının yardımsever dijital asistanısın. Müşterilere makine halıları, yıkanabilir kaymaz yolluklar, sisal halılar ve özel ölçü kesimleri hakkında samimi, kısa ve nazik bilgiler ver." },
+                    { role: "system", content: "Sen Bursa İznik'te bulunan Sur Halı mağazasının yardımsever dijital asistanısın. Müşterilere makine halıları, yıkanabilir kaymaz yolluklar, sisal halılar ve özel ölçü kesimleri hakkında samimi, kısa ve nazik bilgiler ver." + categoryInstruction },
                     { role: "user", content: userMessage }
                 ]
             })
@@ -75,6 +226,8 @@ async function askGroqAI(userMessage) {
 
 document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
+    loadCategoryCovers();
+    setupCatalogFilters();
 
     const chatBox = document.getElementById("aiChatBox");
     const closeBtn = document.getElementById("aiChatClose");
@@ -103,7 +256,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const text = inputField.value.trim();
         if (!text) return;
 
-        messagesContainer.innerHTML += `<div class="ai-msg ai-msg-user" style="background:#2c3e50; color:#fff; padding:8px 12px; border-radius:8px; margin-bottom:8px; text-align:right;">${text}</div>`;
+        const userMsg = document.createElement("div");
+        userMsg.className = "ai-msg ai-msg-user";
+        userMsg.textContent = text;
+        messagesContainer.appendChild(userMsg);
         inputField.value = "";
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -116,6 +272,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const reply = await askGroqAI(text);
         botMsg.textContent = reply;
+        const category = detectCategoryIntent(text);
+        if (category && categoryLinks[category]) {
+            const link = document.createElement("a");
+            link.className = "ai-category-link";
+            link.href = categoryLinks[category];
+            link.textContent = `${category} kategorisini incele`;
+            botMsg.appendChild(document.createElement("br"));
+            botMsg.appendChild(link);
+        }
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 

@@ -173,6 +173,14 @@
     cursor: pointer;
     font-size: 0.85rem;
 }
+
+.ai-category-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: #166534;
+    font-weight: 700;
+    text-decoration: underline;
+}
 /* ==========================================================
    SUR HALI AI CHATBOT STİLLERİ
    ========================================================== */
