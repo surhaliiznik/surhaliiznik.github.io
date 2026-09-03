@@ -851,7 +851,35 @@
 
         <div class="content-box">
 
-            <div class="empty-state">
+            <div class="form-header">
+
+                <div>
+
+                    <h2>Hero Arka Plan Görseli Değiştir</h2>
+
+                    <p>Ana sayfanın üst bölümünde görünecek görseli yönetin.</p>
+
+                </div>
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="heroImageFile">Hero Görseli</label>
+
+                <input type="file" id="heroImageFile" accept="image/jpeg,image/png,image/webp,image/jpg">
+
+            </div>
+
+            <div class="form-actions" style="margin-top:25px;">
+
+                <button type="button" id="saveHeroImageButton" class="gold-button">Kaydet</button>
+
+            </div>
+
+            <div id="heroImageMessage" style="display:none;margin-top:15px;padding:12px;border-radius:8px;"></div>
+
+            <div class="empty-state" style="margin-top:20px;">
 
                 <div class="empty-icon">
                     ⚙
@@ -861,9 +889,7 @@
                     Site Ayarları
                 </h2>
 
-                <p>
-                    Ayarlar bir sonraki aşamada aktif edilecek.
-                </p>
+                <p>Hero görseli Supabase Storage ve site_settings tablosuna kaydedilir.</p>
 
             </div>
 

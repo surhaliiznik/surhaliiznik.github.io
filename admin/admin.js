@@ -35,6 +35,12 @@ const STORAGE_BUCKET =
 const CATEGORY_COVERS_PATH =
     "category-covers";
 
+const HERO_STORAGE_BUCKET =
+    "site-assets";
+
+const HERO_STORAGE_PATH =
+    "hero";
+
 
 /* ==========================================================
    SUPABASE BAŞLAT
@@ -523,6 +529,92 @@ function loginSayfasiniBaslat() {
 }
 
 
+async function heroGorseliniYonet() {
+    const fileInput = document.getElementById("heroImageFile");
+    const saveButton = document.getElementById("saveHeroImageButton");
+    const messageElement = document.getElementById("heroImageMessage");
+
+    if (!fileInput || !saveButton || !messageElement) return;
+
+    function showMessage(text, success = false) {
+        messageElement.textContent = text;
+        messageElement.style.display = "block";
+        messageElement.style.background = success ? "#e7f6ec" : "#fdeaea";
+        messageElement.style.color = success ? "#166534" : "#991b1b";
+    }
+
+    saveButton.addEventListener("click", async function () {
+        const file = fileInput.files && fileInput.files[0];
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+        if (!file) {
+            showMessage("Lütfen bir hero görseli seçin.");
+            return;
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+            showMessage("Sadece JPG, PNG veya WEBP yükleyebilirsiniz.");
+            return;
+        }
+
+        saveButton.disabled = true;
+        saveButton.textContent = "Kaydediliyor...";
+
+        try {
+            const extension = file.name.split(".").pop().toLowerCase();
+            const filePath = `${HERO_STORAGE_PATH}/hero-bg-${Date.now()}.${extension}`;
+            const { error: uploadError } = await supabaseClient.storage
+                .from(HERO_STORAGE_BUCKET)
+                .upload(filePath, file, {
+                    cacheControl: "3600",
+                    upsert: false,
+                    contentType: file.type
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabaseClient.storage
+                .from(HERO_STORAGE_BUCKET)
+                .getPublicUrl(filePath);
+            const heroUrl = publicUrlData?.publicUrl || "";
+            if (!heroUrl) throw new Error("Hero görseli için public URL oluşturulamadı.");
+
+            const { data: settingsRows, error: settingsReadError } = await supabaseClient
+                .from("site_settings")
+                .select("id")
+                .limit(1);
+
+            if (settingsReadError) throw settingsReadError;
+
+            let settingsError;
+            if (settingsRows && settingsRows.length > 0) {
+                const { error } = await supabaseClient
+                    .from("site_settings")
+                    .update({ hero_bg_url: heroUrl })
+                    .eq("id", settingsRows[0].id);
+                settingsError = error;
+            } else {
+                const { error } = await supabaseClient
+                    .from("site_settings")
+                    .insert({ hero_bg_url: heroUrl });
+                settingsError = error;
+            }
+
+            if (settingsError) throw settingsError;
+
+            fileInput.value = "";
+            showMessage("Hero görseli başarıyla kaydedildi.", true);
+        } catch (error) {
+            console.error("Hero görseli kaydetme hatası:", error);
+            showMessage(error.message || "Hero görseli kaydedilemedi.");
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = "Kaydet";
+        }
+    });
+}
+
+
 /* ==========================================================
    DOM HAZIR
 ========================================================== */
@@ -557,6 +649,7 @@ document.addEventListener(
 
         if (adminDashboard) {
             await adminPanelBaslat();
+            heroGorseliniYonet();
         }
 
     }

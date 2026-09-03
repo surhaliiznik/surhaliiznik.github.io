@@ -67,10 +67,31 @@ async function loadCategoryCovers() {
         }
     });
 
+}
+
+async function loadHeroBackground() {
+    const defaultHeroUrl = "assets/images/hero-bg.jpg";
+    const heroSection = document.querySelector(".hero-section");
     const heroMedia = document.querySelector("[data-hero-media]");
-    const heroImage = latestCovers["Halılar"] || Object.values(latestCovers)[0];
-    if (heroMedia && heroImage) {
-        heroMedia.style.backgroundImage = `url("${heroImage}")`;
+    if (!heroSection) return;
+
+    let heroUrl = defaultHeroUrl;
+    if (window.surClient) {
+        const { data, error } = await window.surClient
+            .from("site_settings")
+            .select("hero_bg_url")
+            .limit(1);
+
+        if (error) {
+            console.warn("Hero ayarı okunamadı, varsayılan görsel kullanılacak:", error);
+        } else if (data?.[0]?.hero_bg_url) {
+            heroUrl = data[0].hero_bg_url;
+        }
+    }
+
+    heroSection.style.backgroundImage = `url("${heroUrl}")`;
+    if (heroMedia) {
+        heroMedia.style.backgroundImage = `url("${heroUrl}")`;
     }
 }
 
@@ -227,6 +248,7 @@ async function askGroqAI(userMessage) {
 document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
     loadCategoryCovers();
+    loadHeroBackground();
     setupCatalogFilters();
 
     const chatBox = document.getElementById("aiChatBox");
