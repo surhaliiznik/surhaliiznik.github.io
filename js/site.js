@@ -123,6 +123,102 @@ function needsStoreSupport(message) {
         normalizedMessage.includes("emin değil") || normalizedMessage.includes("emin degil");
 }
 
+function getTryOnDeviceId() {
+    let deviceId = localStorage.getItem("tryOnDeviceId");
+    if (!deviceId) {
+        deviceId = `device-${crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+        localStorage.setItem("tryOnDeviceId", deviceId);
+    }
+    return deviceId;
+}
+
+async function syncTryOnCredits() {
+    const storedValue = localStorage.getItem("tryOnCredits");
+    const storedCredits = Number.parseInt(storedValue, 10);
+    if (storedValue !== "unlimited" && Number.isNaN(storedCredits)) localStorage.setItem("tryOnCredits", "2");
+    if (!window.surClient) return;
+
+    let { data, error } = await window.surClient
+        .from("user_credits")
+        .select("identifier,credits,is_unlimited,updated_at")
+        .eq("identifier", getTryOnDeviceId())
+        .maybeSingle();
+
+    if (error) {
+        console.error("user_credits okunamadı, site_settings fallback deneniyor:", error);
+        const fallback = await window.surClient
+            .from("site_settings")
+            .select("id,identifier,try_on_credits,try_on_unlimited,updated_at")
+            .eq("identifier", getTryOnDeviceId())
+            .maybeSingle();
+        data = fallback.data ? {
+            identifier: fallback.data.identifier,
+            credits: fallback.data.try_on_credits,
+            is_unlimited: fallback.data.try_on_unlimited,
+            updated_at: fallback.data.updated_at
+        } : null;
+        error = fallback.error;
+        if (error) {
+            console.error("Sanal halı hak kaydı okunamadı:", error);
+            return;
+        }
+    }
+    if (!data) return;
+    if (data.is_unlimited === true) {
+        localStorage.setItem("tryOnCredits", "unlimited");
+        return;
+    }
+
+    const syncKey = `tryOnCreditsSynced:${getTryOnDeviceId()}`;
+    if (data.updated_at !== localStorage.getItem(syncKey)) {
+        const currentCredits = Number.parseInt(localStorage.getItem("tryOnCredits"), 10) || 0;
+        localStorage.setItem("tryOnCredits", String(currentCredits + (Number(data.credits) || 0)));
+        localStorage.setItem(syncKey, data.updated_at || String(Date.now()));
+    }
+}
+
+function getTryOnCredits() {
+    const value = localStorage.getItem("tryOnCredits");
+    return value === "unlimited" ? Infinity : Math.max(0, Number.parseInt(value, 10) || 0);
+}
+
+function consumeTryOnCredit() {
+    const credits = getTryOnCredits();
+    if (credits !== Infinity) localStorage.setItem("tryOnCredits", String(Math.max(0, credits - 1)));
+}
+
+function readImageAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+async function analyzeRoomImage(imageDataUrl) {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            messages: [{
+                role: "user",
+                content: [
+                    { type: "text", text: "Bu odanın renklerini, zemin türünü ve uygun halı özelliklerini Türkçe ve kısa şekilde analiz et. Sadece analiz metni döndür." },
+                    { type: "image_url", image_url: { url: imageDataUrl } }
+                ]
+            }]
+        })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || "Oda görseli analiz edilemedi.");
+    return data.choices?.[0]?.message?.content?.trim() || "Oda analizi alınamadı.";
+}
+
 async function loadCategoryCovers() {
     if (!window.surClient) return;
 
@@ -391,6 +487,65 @@ document.addEventListener("DOMContentLoaded", function () {
     const sendBtn = document.getElementById("aiChatSend");
     const inputField = document.getElementById("aiChatInput");
     const messagesContainer = document.getElementById("aiChatMessages");
+    const imageUploadButton = document.getElementById("aiImageUploadButton");
+    const imageInput = document.getElementById("aiImageInput");
+
+    syncTryOnCredits();
+
+    async function simulateRoom(file) {
+        await syncTryOnCredits();
+        if (getTryOnCredits() <= 0) {
+            const limitMessage = document.createElement("div");
+            limitMessage.className = "ai-msg ai-msg-bot";
+            limitMessage.textContent = "Ücretsiz oda simülasyonu hakkınız dolmuştur. Sınırsız kullanım hakkı tanımlatmak veya canlı destek almak için WhatsApp hattımızdan (0539 636 90 95) bize ulaşabilirsiniz!";
+            messagesContainer.appendChild(limitMessage);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return;
+        }
+
+        const imageDataUrl = await readImageAsDataUrl(file);
+        const preview = document.createElement("div");
+        preview.className = "ai-msg ai-msg-user ai-room-preview";
+        preview.innerHTML = `<img src="${escapeHTML(imageDataUrl)}" alt="Yüklenen oda görseli">`;
+        messagesContainer.appendChild(preview);
+
+        const analysisMessage = document.createElement("div");
+        analysisMessage.className = "ai-msg ai-msg-bot";
+        analysisMessage.textContent = "Odanızı analiz ediyorum...";
+        messagesContainer.appendChild(analysisMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        try {
+            const analysis = await analyzeRoomImage(imageDataUrl);
+            const matchedProducts = findAssistantProducts(analysis);
+            const recommendations = matchedProducts.length ? matchedProducts : assistantProducts.slice(0, 2);
+            analysisMessage.textContent = recommendations.length
+                ? `Odanızda ${analysis} Bu alana uygun seçenekleri aşağıda bulabilirsiniz.`
+                : `Oda analizi: ${analysis}`;
+
+            if (recommendations.length) {
+                const cards = document.createElement("div");
+                cards.className = "ai-product-cards";
+                cards.innerHTML = renderAssistantProductCards(recommendations.slice(0, 2));
+                analysisMessage.appendChild(cards);
+                consumeTryOnCredit();
+            }
+        } catch (error) {
+            console.error("Sanal halı oda analizi başarısız:", error);
+            analysisMessage.textContent = "Oda görseli analiz edilemedi. Lütfen tekrar deneyin veya WhatsApp hattımızdan destek alın.";
+        }
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    if (imageUploadButton && imageInput) {
+        imageUploadButton.addEventListener("click", () => imageInput.click());
+        imageInput.addEventListener("change", async function () {
+            const file = imageInput.files?.[0];
+            imageInput.value = "";
+            if (!file || !file.type.startsWith("image/")) return;
+            await simulateRoom(file);
+        });
+    }
 
     if (toggleBtn && chatBox) {
         toggleBtn.onclick = function (e) {

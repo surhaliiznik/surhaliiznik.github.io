@@ -893,6 +893,25 @@
 
             </div>
 
+            <div class="form-header" style="margin-top:30px;">
+                <div>
+                    <h2>Müşteri Hak Yönetimi</h2>
+                    <p>Telefon numarası veya cihaz ID'si ile sanal halı kullanım hakkı tanımlayın.</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="creditIdentifier">Telefon Numarası / Cihaz ID</label>
+                <input type="text" id="creditIdentifier" placeholder="Örn. 0539... veya device-...">
+            </div>
+
+            <div class="form-actions" style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="button" id="grantUnlimitedCreditsButton" class="gold-button">Sınırsız Hak Tanımla</button>
+                <button type="button" id="addFiveCreditsButton" class="outline-button">+5 Hak Ekle</button>
+            </div>
+
+            <div id="creditMessage" style="display:none;margin-top:15px;padding:12px;border-radius:8px;"></div>
+
         </div>
 
     </section>

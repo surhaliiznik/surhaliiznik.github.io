@@ -224,6 +224,18 @@
     font-size: 12px;
     line-height: 1.4;
 }
+
+.ai-room-preview img {
+    display: block;
+    width: 120px;
+    max-height: 90px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.ai-product-card {
+    min-width: 0;
+}
 /* ==========================================================
    SUR HALI AI CHATBOT STİLLERİ
    ========================================================== */

@@ -614,6 +614,84 @@ async function heroGorseliniYonet() {
     });
 }
 
+async function musteriHaklariniYonet() {
+    const identifierInput = document.getElementById("creditIdentifier");
+    const unlimitedButton = document.getElementById("grantUnlimitedCreditsButton");
+    const addButton = document.getElementById("addFiveCreditsButton");
+    const messageElement = document.getElementById("creditMessage");
+    if (!identifierInput || !unlimitedButton || !addButton || !messageElement) return;
+
+    function showMessage(text, success = false) {
+        messageElement.textContent = text;
+        messageElement.style.display = "block";
+        messageElement.style.background = success ? "#e7f6ec" : "#fdeaea";
+        messageElement.style.color = success ? "#166534" : "#991b1b";
+    }
+
+    async function saveCredits(unlimited) {
+        const identifier = identifierInput.value.trim();
+        if (!identifier) {
+            showMessage("Lütfen telefon numarası veya cihaz ID'si girin.");
+            return;
+        }
+
+        unlimitedButton.disabled = true;
+        addButton.disabled = true;
+        try {
+            const { data: existing, error: readError } = await supabaseClient
+                .from("user_credits")
+                .select("id,credits,is_unlimited")
+                .eq("identifier", identifier)
+                .maybeSingle();
+
+            const currentCredits = Number(existing?.credits) || 0;
+            const values = {
+                identifier,
+                credits: unlimited ? 0 : currentCredits + 5,
+                is_unlimited: unlimited,
+                updated_at: new Date().toISOString()
+            };
+            let result;
+            if (!readError) {
+                result = existing
+                    ? await supabaseClient.from("user_credits").update(values).eq("id", existing.id)
+                    : await supabaseClient.from("user_credits").insert(values);
+            } else {
+                console.error("user_credits okunamadı, site_settings fallback deneniyor:", readError);
+                const { data: fallback, error: fallbackReadError } = await supabaseClient
+                    .from("site_settings")
+                    .select("id,identifier,try_on_credits,try_on_unlimited")
+                    .eq("identifier", identifier)
+                    .maybeSingle();
+                if (fallbackReadError) throw fallbackReadError;
+
+                const fallbackValues = {
+                    identifier,
+                    try_on_credits: unlimited ? 0 : (Number(fallback?.try_on_credits) || 0) + 5,
+                    try_on_unlimited: unlimited,
+                    updated_at: new Date().toISOString()
+                };
+                result = fallback
+                    ? await supabaseClient.from("site_settings").update(fallbackValues).eq("id", fallback.id)
+                    : await supabaseClient.from("site_settings").insert(fallbackValues);
+            }
+            if (result.error) throw result.error;
+
+            showMessage(unlimited ? "Sınırsız hak tanımlandı." : "+5 hak eklendi.", true);
+            identifierInput.value = "";
+        } catch (error) {
+            console.error("Müşteri hak kaydı güncellenemedi:", error);
+            showMessage(error.message || "Müşteri hakkı kaydedilemedi.");
+        } finally {
+            unlimitedButton.disabled = false;
+            addButton.disabled = false;
+        }
+    }
+
+    unlimitedButton.addEventListener("click", () => saveCredits(true));
+    addButton.addEventListener("click", () => saveCredits(false));
+}
+
 
 /* ==========================================================
    DOM HAZIR
@@ -650,6 +728,7 @@ document.addEventListener(
         if (adminDashboard) {
             await adminPanelBaslat();
             heroGorseliniYonet();
+            musteriHaklariniYonet();
         }
 
     }
