@@ -539,6 +539,7 @@ function renderAssistantProductCards(products) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM yüklendi, sohbet görsel yükleme akışı hazırlanıyor.");
     loadFeaturedProducts();
     loadCategoryCovers();
     loadHeroBackground();
@@ -551,8 +552,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const sendBtn = document.getElementById("aiChatSend");
     const inputField = document.getElementById("aiChatInput");
     const messagesContainer = document.getElementById("aiChatMessages");
-    const imageUploadButton = document.getElementById("aiImageUploadButton");
-    const imageInput = document.getElementById("aiImageInput");
+    const uploadBtn = document.getElementById("chat-upload-btn");
+    const fileInput = document.getElementById("chat-file-input");
 
     syncTryOnCredits();
 
@@ -605,15 +606,17 @@ document.addEventListener("DOMContentLoaded", function () {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    if (imageUploadButton && imageInput) {
-        imageUploadButton.addEventListener("click", () => {
+    if (uploadBtn && fileInput) {
+        console.log("Görsel yükleme elemanları bulundu, event listener'lar bağlanıyor.");
+        uploadBtn.onclick = function (e) {
+            e.preventDefault();
             console.log("+ butonuna tıklandı, gizli dosya seçici açılıyor.");
-            imageInput.click();
-        });
-        imageInput.addEventListener("change", async function () {
-            const file = imageInput.files?.[0];
-            console.log("Dosya change olayı tetiklendi.");
-            imageInput.value = "";
+            fileInput.click();
+        };
+        fileInput.onchange = async function (e) {
+            console.log("Dosya seçme olayı başladı.");
+            const file = e.target.files[0];
+            fileInput.value = "";
             if (!file) {
                 console.log("Dosya seçilmedi.");
                 return;
@@ -624,12 +627,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
             try {
-                console.log("Oda görseli simülasyon akışı başlatılıyor.");
+                console.log("Oda görseli işleme akışı başlatılıyor.");
                 await simulateRoom(file);
-                console.log("Oda görseli simülasyon akışı tamamlandı.");
+                console.log("Oda görseli işleme akışı tamamlandı.");
             } catch (error) {
-                console.error("Oda görseli yükleme/sıkıştırma akışı başarısız:", error);
+                console.error("Oda görseli işleme akışı başarısız:", error);
             }
+        };
+    } else {
+        console.error("Görsel yükleme elemanları bulunamadı:", {
+            uploadButton: Boolean(uploadBtn),
+            fileInput: Boolean(fileInput)
         });
     }
 
