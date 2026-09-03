@@ -104,7 +104,8 @@ async function loadFeaturedProducts() {
         // Filte kullanmadan doğrudan ürünleri çekiyoruz
         const { data: products, error } = await window.surClient
             .from('products')
-            .select('*');
+            .select('*')
+            .eq('is_featured', true);
 
         if (error || !products || products.length === 0) {
             container.innerHTML = '<p class="no-data" style="text-align:center; width:100%; padding:20px;">Ürün bulunamadı.</p>';

@@ -1484,17 +1484,9 @@ async function adminPanelBaslat() {
 
                                         <button
                                             type="button"
-                                            class="toggle-featured-button"
+                                            class="toggle-featured-button ${product.is_featured ? "featured-enabled" : "featured-disabled"}"
                                             data-id="${escapeHTML(product.id)}"
                                             data-featured="${product.is_featured ? "true" : "false"}"
-                                            style="
-                                                padding:8px 12px;
-                                                cursor:pointer;
-                                                color:#1c1917;
-                                                border:1px solid #c5a880;
-                                                background:${product.is_featured ? "#d4af37" : "transparent"};
-                                                border-radius:6px;
-                                            "
                                         >
                                             ${product.is_featured ? "Vitrinden Çıkar" : "Vitrine Al"}
                                         </button>
