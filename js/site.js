@@ -425,8 +425,8 @@ async function loadFeaturedProducts() {
                 </div>
             `;
         }).join('');
-    } catch (err) {
-        console.error("Ürün yükleme hatası:", err);
+   } catch (error) {
+        console.error("Giydirme hatası:", error);
     }
 }
 
