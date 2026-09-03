@@ -7,6 +7,7 @@ const GROQ_API_KEY = "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";
 window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
 let assistantProducts = [];
 let assistantProductsReady = Promise.resolve();
+let lastRoomImageDataUrl = "";
 
 const categoryLinks = {
     "Halılar": "halilar.html?category=Halılar",
@@ -189,6 +190,44 @@ function getTryOnCredits() {
 function consumeTryOnCredit() {
     const credits = getTryOnCredits();
     if (credits !== Infinity) localStorage.setItem("tryOnCredits", String(Math.max(0, credits - 1)));
+}
+
+async function consumeRemoteTryOnCredit() {
+    if (!window.surClient) return;
+
+    const deviceId = getTryOnDeviceId();
+    const { data, error } = await window.surClient
+        .from("user_credits")
+        .select("id,credits,is_unlimited")
+        .eq("identifier", deviceId)
+        .maybeSingle();
+
+    if (error || !data || data.is_unlimited === true) return;
+
+    const nextCredits = Math.max(0, (Number(data.credits) || 0) - 1);
+    const { error: updateError } = await window.surClient
+        .from("user_credits")
+        .update({ credits: nextCredits, updated_at: new Date().toISOString() })
+        .eq("id", data.id);
+
+    if (updateError) console.error("Sanal giydirme hakkı düşürülemedi:", updateError);
+}
+
+async function invokeVirtualTryOn(product, roomImage) {
+    if (!window.surClient) throw new Error("Sanal giydirme servisi hazır değil.");
+    const productImage = product.image_url;
+    if (!productImage) throw new Error("Bu ürünün görseli bulunamadı.");
+
+    const { data, error } = await window.surClient.functions.invoke("virtual-try-on", {
+        body: {
+            room_image: roomImage,
+            product_image: productImage,
+            product_id: product.id
+        }
+    });
+    if (error) throw error;
+    if (!data?.output_url) throw new Error("Sanal giydirme sonucu alınamadı.");
+    return data.output_url;
 }
 
 function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
@@ -528,7 +567,7 @@ async function askGroqAI(userMessage) {
     }
 }
 
-function renderAssistantProductCards(products) {
+function renderAssistantProductCards(products, roomImage = "") {
     return products.map(product => {
         const title = productTitle(product);
         const imageUrl = product.image_url || "assets/images/logo.jpeg";
@@ -538,6 +577,7 @@ function renderAssistantProductCards(products) {
                 <img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
                 <strong>${escapeHTML(title)}</strong>
                 <a class="ai-category-link" href="${escapeHTML(productLink(product))}">Ürünü İncele</a>
+                ${roomImage ? `<button type="button" class="ai-try-on-button" data-product-id="${escapeHTML(product.id || "")}">Bu Halıyı Odamda Gör</button>` : ""}
             </article>
         `;
     }).join("");
@@ -608,10 +648,39 @@ document.addEventListener("DOMContentLoaded", function () {
             if (recommendations.length) {
                 const cards = document.createElement("div");
                 cards.className = "ai-product-cards";
-                cards.innerHTML = renderAssistantProductCards(recommendations.slice(0, 2));
+                lastRoomImageDataUrl = imageDataUrl;
+                cards.innerHTML = renderAssistantProductCards(recommendations.slice(0, 2), imageDataUrl);
                 analysisMessage.appendChild(cards);
-                consumeTryOnCredit();
-                console.log("Oda önerileri gösterildi ve kullanım hakkı azaltıldı.");
+                console.log("Oda önerileri gösterildi; giydirme hakkı buton tıklamasında düşürülecek.");
+                cards.querySelectorAll(".ai-try-on-button").forEach(button => {
+                    button.addEventListener("click", async () => {
+                        const product = recommendations.find(item => String(item.id) === button.dataset.productId);
+                        if (!product) return;
+                        button.disabled = true;
+                        button.textContent = "Giydiriliyor...";
+                        const loading = document.createElement("div");
+                        loading.className = "ai-msg ai-msg-bot ai-try-on-loading";
+                        loading.textContent = "Odanıza halı giydiriliyor (5-10 sn)...";
+                        messagesContainer.appendChild(loading);
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        try {
+                            const outputUrl = await invokeVirtualTryOn(product, lastRoomImageDataUrl);
+                            await consumeRemoteTryOnCredit();
+                            consumeTryOnCredit();
+                            const result = document.createElement("div");
+                            result.className = "ai-msg ai-msg-bot ai-try-on-result";
+                            result.innerHTML = `<img src="${escapeHTML(outputUrl)}" alt="Sanal olarak halı yerleştirilmiş oda"><div class="ai-try-on-actions"><a class="ai-category-link" href="${escapeHTML(outputUrl)}" download="sur-hali-sanal-giydirme.jpg">Resmi İndir</a><a class="ai-category-link" target="_blank" rel="noopener" href="https://wa.me/905396369095?text=${encodeURIComponent("Sanal halı görseli hakkında bilgi almak istiyorum: " + outputUrl)}">WhatsApp'tan Gönder</a></div>`;
+                            messagesContainer.appendChild(result);
+                            loading.remove();
+                        } catch (error) {
+                            console.error("Sanal giydirme başarısız:", error);
+                            loading.textContent = "Sanal giydirme sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+                            button.disabled = false;
+                            button.textContent = "Bu Halıyı Odamda Gör";
+                        }
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    });
+                });
             }
         } catch (err) {
             console.error("Sanal halı oda analizi başarısız:", err);

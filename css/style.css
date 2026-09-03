@@ -401,3 +401,39 @@
         border-radius: 0 !important;
     }
 }
+
+.ai-try-on-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    border: 0;
+    border-radius: 6px;
+    background: #166534;
+    color: #ffffff;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ai-try-on-button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.ai-try-on-loading {
+    font-weight: 700;
+}
+
+.ai-try-on-result img {
+    display: block;
+    width: 100%;
+    max-height: 240px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.ai-try-on-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
