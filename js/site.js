@@ -187,36 +187,82 @@ function consumeTryOnCredit() {
     if (credits !== Infinity) localStorage.setItem("tryOnCredits", String(Math.max(0, credits - 1)));
 }
 
-function readImageAsDataUrl(file) {
+function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
+        reader.onerror = () => reject(reader.error || new Error("Görsel okunamadı."));
+        reader.onload = () => {
+            const image = new Image();
+            image.onerror = () => reject(new Error("Görsel boyutlandırılamadı."));
+            image.onload = () => {
+                const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+                canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+                const context = canvas.getContext("2d");
+                if (!context) {
+                    reject(new Error("Görsel sıkıştırma alanı oluşturulamadı."));
+                    return;
+                }
+                context.imageSmoothingEnabled = true;
+                context.imageSmoothingQuality = "high";
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL("image/jpeg", quality));
+            };
+            image.src = reader.result;
+        };
         reader.readAsDataURL(file);
     });
 }
 
 async function analyzeRoomImage(imageDataUrl) {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${GROQ_API_KEY}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: "meta-llama/llama-4-scout-17b-16e-instruct",
-            messages: [{
-                role: "user",
-                content: [
-                    { type: "text", text: "Bu odanın renklerini, zemin türünü ve uygun halı özelliklerini Türkçe ve kısa şekilde analiz et. Sadece analiz metni döndür." },
-                    { type: "image_url", image_url: { url: imageDataUrl } }
-                ]
-            }]
-        })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "Oda görseli analiz edilemedi.");
-    return data.choices?.[0]?.message?.content?.trim() || "Oda analizi alınamadı.";
+    try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.2-11b-vision-preview",
+                messages: [{
+                    role: "user",
+                    content: [
+                        { type: "text", text: "Bu oda/zemin görselini analiz et. Zemin rengi, ortam ışığı ve genel tarza göre en uygun halı renk ve modellerini kısaca söyle." },
+                        { type: "image_url", image_url: { url: imageDataUrl } }
+                    ]
+                }]
+            })
+        });
+        const responseText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            data = { raw: responseText };
+        }
+        if (!response.ok) {
+            console.error("Groq Vision API hatası:", {
+                status: response.status,
+                statusText: response.statusText,
+                error: data.error,
+                raw: data.raw,
+                response: data
+            });
+            throw new Error(data.error?.message || "Oda görseli analiz edilemedi.");
+        }
+        const analysis = data.choices?.[0]?.message?.content?.trim();
+        if (!analysis) {
+            console.error("Groq Vision API boş yanıt döndürdü:", data);
+            throw new Error("Oda analizi boş döndü.");
+        }
+        return analysis;
+    } catch (error) {
+        if (!error.message?.includes("Oda görseli analiz edilemedi") && !error.message?.includes("Oda analizi boş")) {
+            console.error("Groq Vision API bağlantı/yanıt hatası:", error);
+        }
+        throw error;
+    }
 }
 
 async function loadCategoryCovers() {
@@ -503,7 +549,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const imageDataUrl = await readImageAsDataUrl(file);
+        const imageDataUrl = await compressImageToDataUrl(file, 1024, 0.7);
         const preview = document.createElement("div");
         preview.className = "ai-msg ai-msg-user ai-room-preview";
         preview.innerHTML = `<img src="${escapeHTML(imageDataUrl)}" alt="Yüklenen oda görseli">`;
