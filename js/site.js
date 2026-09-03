@@ -75,7 +75,10 @@ function findAssistantProducts(message) {
 }
 
 async function loadAssistantProducts() {
-    if (!window.surClient) return;
+    if (!window.surClient) {
+        console.error("Asistan ürün hafızası yüklenemedi: Supabase istemcisi hazır değil.");
+        return;
+    }
 
     const { data, error } = await window.surClient
         .from("products")
@@ -83,11 +86,23 @@ async function loadAssistantProducts() {
         .eq("is_active", true);
 
     if (error) {
-        console.error("Asistan ürün hafızası yüklenemedi:", error);
+        console.error("Asistan ürün hafızası yüklenemedi. products sorgusu hata verdi:", {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            error
+        });
         return;
     }
 
     assistantProducts = data || [];
+    if (!assistantProducts.length) {
+        console.error("Asistan ürün hafızası boş: products tablosunda is_active = true olan ürün bulunamadı.");
+        return;
+    }
+
+    console.info(`Asistan ürün hafızası hazır: ${assistantProducts.length} aktif ürün yüklendi.`);
 }
 
 function assistantProductContext() {
@@ -321,9 +336,30 @@ async function askGroqAI(userMessage) {
             })
         });
         const data = await response.json();
-        return data.choices?.[0]?.message?.content || "Şu an yanıt veremiyorum, dilerseniz WhatsApp hattımızdan (0539 636 90 95) ulaşabilirsiniz.";
+        if (!response.ok) {
+            console.error("Groq asistan yanıtı başarısız:", {
+                status: response.status,
+                statusText: response.statusText,
+                response: data
+            });
+        }
+
+        const reply = data.choices?.[0]?.message?.content?.trim();
+        if (reply) return reply;
+
+        const matchedProducts = findAssistantProducts(userMessage);
+        if (matchedProducts.length) {
+            return `${matchedProducts.map(productTitle).join(" ve ")} ürünleri sorunuza uygun olabilir. Aşağıdaki kartlardan ürünleri inceleyebilirsiniz.`;
+        }
+
+        return "Ürünlerimiz hakkında yardımcı olabilmem için halı türü, kullanım alanı veya ölçü bilgisini paylaşabilirsiniz.";
     } catch (error) {
-        return "Bağlantı hatası oluştu. Lütfen tekrar deneyin.";
+        console.error("Groq asistan bağlantı hatası:", error);
+        const matchedProducts = findAssistantProducts(userMessage);
+        if (matchedProducts.length) {
+            return `${matchedProducts.map(productTitle).join(" ve ")} ürünleri sorunuza uygun olabilir. Aşağıdaki kartlardan ürünleri inceleyebilirsiniz.`;
+        }
+        return "Ürünlerimiz hakkında yardımcı olabilmem için halı türü, kullanım alanı veya ölçü bilgisini paylaşabilirsiniz.";
     }
 }
 
