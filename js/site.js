@@ -188,34 +188,50 @@ function consumeTryOnCredit() {
 }
 
 function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
+    console.log("Görsel sıkıştırma başlıyor:", file.name);
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onerror = () => reject(reader.error || new Error("Görsel okunamadı."));
+        reader.onerror = () => {
+            console.error("FileReader görsel okuma hatası:", reader.error);
+            reject(reader.error || new Error("Görsel okunamadı."));
+        };
         reader.onload = () => {
+            console.log("FileReader görseli okudu.");
             const image = new Image();
-            image.onerror = () => reject(new Error("Görsel boyutlandırılamadı."));
+            image.onerror = () => {
+                console.error("Görsel Image nesnesine yüklenemedi.");
+                reject(new Error("Görsel boyutlandırılamadı."));
+            };
             image.onload = () => {
+                console.log("Görsel boyutları:", image.naturalWidth, "x", image.naturalHeight);
                 const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
                 const canvas = document.createElement("canvas");
                 canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
                 canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+                console.log("Canvas boyutları:", canvas.width, "x", canvas.height);
                 const context = canvas.getContext("2d");
                 if (!context) {
+                    console.error("Canvas 2D context oluşturulamadı.");
                     reject(new Error("Görsel sıkıştırma alanı oluşturulamadı."));
                     return;
                 }
                 context.imageSmoothingEnabled = true;
                 context.imageSmoothingQuality = "high";
                 context.drawImage(image, 0, 0, canvas.width, canvas.height);
-                resolve(canvas.toDataURL("image/jpeg", quality));
+                const compressedImage = canvas.toDataURL("image/jpeg", quality);
+                console.log("Görsel canvas üzerinde sıkıştırıldı. Base64 uzunluğu:", compressedImage.length);
+                resolve(compressedImage);
             };
             image.src = reader.result;
         };
+        console.log("FileReader.readAsDataURL başlatılıyor.");
         reader.readAsDataURL(file);
     });
 }
 
 async function analyzeRoomImage(imageDataUrl) {
+    console.log("Groq Vision analiz fonksiyonu başladı.");
+    console.log("Groq Vision isteği hazırlanıyor. Görsel Base64 uzunluğu:", imageDataUrl.length);
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
@@ -234,6 +250,7 @@ async function analyzeRoomImage(imageDataUrl) {
                 }]
             })
         });
+        console.log("Groq Vision API yanıtı alındı. HTTP:", response.status);
         const responseText = await response.text();
         let data;
         try {
@@ -256,6 +273,7 @@ async function analyzeRoomImage(imageDataUrl) {
             console.error("Groq Vision API boş yanıt döndürdü:", data);
             throw new Error("Oda analizi boş döndü.");
         }
+        console.log("Groq Vision analizi başarıyla alındı.");
         return analysis;
     } catch (error) {
         if (!error.message?.includes("Oda görseli analiz edilemedi") && !error.message?.includes("Oda analizi boş")) {
@@ -549,7 +567,9 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const imageDataUrl = await compressImageToDataUrl(file, 1024, 0.7);
+        console.log("Seçilen dosya canvas sıkıştırmasına gönderiliyor.");
+        const imageDataUrl = await compressImageToDataUrl(file, 800, 0.7);
+        console.log("Sıkıştırılmış görsel hazır, önizleme oluşturuluyor.");
         const preview = document.createElement("div");
         preview.className = "ai-msg ai-msg-user ai-room-preview";
         preview.innerHTML = `<img src="${escapeHTML(imageDataUrl)}" alt="Yüklenen oda görseli">`;
@@ -562,6 +582,7 @@ document.addEventListener("DOMContentLoaded", function () {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         try {
+            console.log("Oda görseli için Groq Vision isteği başlatılıyor.");
             const analysis = await analyzeRoomImage(imageDataUrl);
             const matchedProducts = findAssistantProducts(analysis);
             const recommendations = matchedProducts.length ? matchedProducts : assistantProducts.slice(0, 2);
@@ -575,6 +596,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 cards.innerHTML = renderAssistantProductCards(recommendations.slice(0, 2));
                 analysisMessage.appendChild(cards);
                 consumeTryOnCredit();
+                console.log("Oda önerileri gösterildi ve kullanım hakkı azaltıldı.");
             }
         } catch (error) {
             console.error("Sanal halı oda analizi başarısız:", error);
@@ -584,12 +606,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (imageUploadButton && imageInput) {
-        imageUploadButton.addEventListener("click", () => imageInput.click());
+        imageUploadButton.addEventListener("click", () => {
+            console.log("+ butonuna tıklandı, gizli dosya seçici açılıyor.");
+            imageInput.click();
+        });
         imageInput.addEventListener("change", async function () {
             const file = imageInput.files?.[0];
+            console.log("Dosya change olayı tetiklendi.");
             imageInput.value = "";
-            if (!file || !file.type.startsWith("image/")) return;
-            await simulateRoom(file);
+            if (!file) {
+                console.log("Dosya seçilmedi.");
+                return;
+            }
+            console.log("Dosya seçildi:", file.name);
+            if (!file.type.startsWith("image/")) {
+                console.error("Seçilen dosya bir görsel değil:", file.type);
+                return;
+            }
+            try {
+                console.log("Oda görseli simülasyon akışı başlatılıyor.");
+                await simulateRoom(file);
+                console.log("Oda görseli simülasyon akışı tamamlandı.");
+            } catch (error) {
+                console.error("Oda görseli yükleme/sıkıştırma akışı başarısız:", error);
+            }
         });
     }
 
