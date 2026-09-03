@@ -5,6 +5,8 @@ const SUR_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 const GROQ_API_KEY = "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";
 
 window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
+let assistantProducts = [];
+let assistantProductsReady = Promise.resolve();
 
 const categoryLinks = {
     "Halılar": "halilar.html?category=Halılar",
@@ -34,6 +36,76 @@ function detectCategoryIntent(message) {
     if (normalizedMessage.includes("halı") || normalizedMessage.includes("hali") || normalizedMessage.includes("fiyat")) return "Halılar";
 
     return null;
+}
+
+function productTitle(product) {
+    return product.title || product.name || "Halı Model";
+}
+
+function productLink(product) {
+    const category = product.category || "Halılar";
+    const identifier = product.slug || product.id;
+    return `halilar.html?category=${encodeURIComponent(category)}&product=${encodeURIComponent(identifier || "")}`;
+}
+
+function findAssistantProducts(message) {
+    const normalizedMessage = message.toLocaleLowerCase("tr-TR");
+    const category = detectCategoryIntent(message);
+    const tokens = normalizedMessage
+        .replace(/[^a-zçğıöşü0-9\s-]/gi, " ")
+        .split(/\s+/)
+        .filter(token => token.length > 2);
+
+    return assistantProducts
+        .map(product => {
+            const searchable = [productTitle(product), product.category, product.description, product.size]
+                .filter(Boolean)
+                .join(" ")
+                .toLocaleLowerCase("tr-TR");
+            let score = category && product.category === category ? 5 : 0;
+            tokens.forEach(token => {
+                if (searchable.includes(token)) score += 1;
+            });
+            return { product, score };
+        })
+        .filter(item => item.score > 0)
+        .sort((left, right) => right.score - left.score)
+        .slice(0, 2)
+        .map(item => item.product);
+}
+
+async function loadAssistantProducts() {
+    if (!window.surClient) return;
+
+    const { data, error } = await window.surClient
+        .from("products")
+        .select("*")
+        .eq("is_active", true);
+
+    if (error) {
+        console.error("Asistan ürün hafızası yüklenemedi:", error);
+        return;
+    }
+
+    assistantProducts = data || [];
+}
+
+function assistantProductContext() {
+    return assistantProducts.map(product => ({
+        id: product.id,
+        slug: product.slug || null,
+        title: productTitle(product),
+        category: product.category || "",
+        image_url: product.image_url || ""
+    }));
+}
+
+function needsStoreSupport(message) {
+    const normalizedMessage = message.toLocaleLowerCase("tr-TR");
+    return normalizedMessage.includes("özel ölçü") || normalizedMessage.includes("özel olcu") ||
+        normalizedMessage.includes("özel kesim") || normalizedMessage.includes("fiyat teklifi") ||
+        normalizedMessage.includes("kararsız") || normalizedMessage.includes("kararsiz") ||
+        normalizedMessage.includes("emin değil") || normalizedMessage.includes("emin degil");
 }
 
 async function loadCategoryCovers() {
@@ -154,7 +226,7 @@ function renderCatalogProducts(products, category) {
         const price = product.price ? `${escapeHTML(product.price)} TL` : "Fiyat bilgisi için iletişime geçin";
 
         return `
-            <article class="product-card">
+            <article class="product-card" data-product-id="${escapeHTML(product.slug || product.id || "")}">
                 <div class="product-image">
                     <img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
                 </div>
@@ -189,6 +261,12 @@ async function loadCatalogProducts(category) {
     }
 
     renderCatalogProducts((data || []).filter(product => product.is_active !== false), category);
+
+    const requestedProduct = new URLSearchParams(window.location.search).get("product");
+    if (requestedProduct) {
+        const productCard = container.querySelector(`[data-product-id="${CSS.escape(requestedProduct)}"]`);
+        productCard?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 }
 
 function setupCatalogFilters() {
@@ -223,6 +301,9 @@ async function askGroqAI(userMessage) {
     const categoryInstruction = category
         ? ` Kullanıcı ${category} kategorisiyle ilgileniyor. Yanıtının sonunda ${category} kategorisini inceleyebileceğini belirt.`
         : " Kategori net değilse kullanıcıdan tercihlerini veya ölçüsünü sor.";
+    const productsInstruction = assistantProducts.length
+        ? ` Aktif ürün kataloğu context'i: ${JSON.stringify(assistantProductContext())}. Bu listedeki ürünler dışındaki ürünleri varmış gibi anlatma.`
+        : " Aktif ürün kataloğu şu anda kullanılamıyor; ürün adı veya stok uydurma.";
 
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -234,7 +315,7 @@ async function askGroqAI(userMessage) {
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [
-                    { role: "system", content: "Sen Bursa İznik'te bulunan Sur Halı mağazasının yardımsever dijital asistanısın. Müşterilere makine halıları, yıkanabilir kaymaz yolluklar, sisal halılar ve özel ölçü kesimleri hakkında samimi, kısa ve nazik bilgiler ver." + categoryInstruction },
+                    { role: "system", content: "Sen İznik Sur Halı'nın samimi ve uzman satış danışmanısın. Müşterilere evleri için en uygun halı, kaymaz yolluk, makine halısı ve özel ölçü kesim seçeneklerinde yardımcı olursun. Kısa, açık ve samimi cevaplar ver." + categoryInstruction + productsInstruction },
                     { role: "user", content: userMessage }
                 ]
             })
@@ -246,10 +327,26 @@ async function askGroqAI(userMessage) {
     }
 }
 
+function renderAssistantProductCards(products) {
+    return products.map(product => {
+        const title = productTitle(product);
+        const imageUrl = product.image_url || "assets/images/logo.jpeg";
+
+        return `
+            <article class="ai-product-card">
+                <img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
+                <strong>${escapeHTML(title)}</strong>
+                <a class="ai-category-link" href="${escapeHTML(productLink(product))}">Ürünü İncele</a>
+            </article>
+        `;
+    }).join("");
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
     loadCategoryCovers();
     loadHeroBackground();
+    assistantProductsReady = loadAssistantProducts();
     setupCatalogFilters();
 
     const chatBox = document.getElementById("aiChatBox");
@@ -293,6 +390,7 @@ document.addEventListener("DOMContentLoaded", function () {
         messagesContainer.appendChild(botMsg);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+        await assistantProductsReady;
         const reply = await askGroqAI(text);
         botMsg.textContent = reply;
         const category = detectCategoryIntent(text);
@@ -303,6 +401,21 @@ document.addEventListener("DOMContentLoaded", function () {
             link.textContent = `${category} kategorisini incele`;
             botMsg.appendChild(document.createElement("br"));
             botMsg.appendChild(link);
+        }
+
+        const matchedProducts = findAssistantProducts(text);
+        if (matchedProducts.length) {
+            const cards = document.createElement("div");
+            cards.className = "ai-product-cards";
+            cards.innerHTML = renderAssistantProductCards(matchedProducts);
+            botMsg.appendChild(cards);
+        }
+
+        if (needsStoreSupport(text)) {
+            const supportMessage = document.createElement("p");
+            supportMessage.className = "ai-support-message";
+            supportMessage.textContent = "Ölçünüze özel kesim ve canlı görsel desteği için WhatsApp hattımızdan (0539 636 90 95) bize ulaşabilir veya İznik mağazamızı ziyaret edebilirsiniz!";
+            botMsg.appendChild(supportMessage);
         }
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }

@@ -181,6 +181,49 @@
     font-weight: 700;
     text-decoration: underline;
 }
+
+.ai-product-cards {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.ai-product-card {
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 7px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.ai-product-card img {
+    width: 54px;
+    height: 54px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.ai-product-card strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-product-card .ai-category-link {
+    grid-column: 2;
+    margin-top: -4px;
+    font-size: 12px;
+}
+
+.ai-support-message {
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 1.4;
+}
 /* ==========================================================
    SUR HALI AI CHATBOT STİLLERİ
    ========================================================== */
