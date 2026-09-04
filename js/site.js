@@ -242,20 +242,123 @@ async function consumeRemoteTryOnCredit() {
 }
 
 async function invokeVirtualTryOn(product, roomImage) {
-    if (!window.surClient) throw new Error("Sanal giydirme servisi hazır değil.");
-    const productImage = product.image_url;
-    if (!productImage) throw new Error("Bu ürünün görseli bulunamadı.");
+    if (!window.surClient) throw new Error("Sanal giydirme servisi hazır değil (surClient yok).");
+    const productImage = product?.image_url;
+    if (!productImage) throw new Error("Bu ürünün görseli bulunamadı (product.image_url eksik).");
+    if (!roomImage) throw new Error("Oda görseli boş, VTO çalıştırılamaz.");
 
-    const { data, error } = await window.surClient.functions.invoke("virtual-try-on", {
-        body: {
-            room_image: roomImage,
-            product_image: productImage,
-            product_id: product.id
+    const payload = {
+        room_image: roomImage,
+        product_image: productImage,
+        product_id: product?.id
+    };
+    console.log("[invokeVirtualTryOn] Edge Function çağrılıyor. product_id:", payload.product_id,
+        "room_image uzunluğu:", String(payload.room_image || "").length,
+        "product_image:", String(payload.product_image || "").slice(0, 120));
+
+    let rawResult;
+    try {
+        rawResult = await window.surClient.functions.invoke("virtual-try-on", { body: payload });
+    } catch (networkErr) {
+        console.groupCollapsed("[invokeVirtualTryOn] Ağ/network hatası (fetch atıldı ama cevap alınamadı)");
+        console.error("Hata nesnesi:", networkErr);
+        console.error("Mesaj:", networkErr?.message);
+        console.error("Stack:", networkErr?.stack);
+        console.error("Name:", networkErr?.name);
+        console.groupEnd();
+        const enriched = new Error(`Sanal giydirme servisine ulaşılamadı (ağ hatası): ${networkErr?.message || "Bilinmeyen ağ hatası"}`);
+        enriched.cause = networkErr;
+        throw enriched;
+    }
+
+    const { data, error } = rawResult || {};
+    if (!error && data?.output_url) {
+        console.log("[invokeVirtualTryOn] BAŞARILI. output_url:", String(data.output_url).slice(0, 140));
+        return data.output_url;
+    }
+
+    const httpStatus = error?.status || error?.context?.responseStatus || (typeof error?.response?.status === "number" ? error.response.status : undefined);
+    const isFunctionsHttpError = error?.name === "FunctionsHttpError" ||
+        (typeof httpStatus === "number" && httpStatus >= 400) ||
+        (error && typeof error.context === "object");
+
+    let edgeBody = null;
+    let edgeErrorMsg = null;
+    let edgeDetails = null;
+    let edgeRawText = null;
+    if (isFunctionsHttpError) {
+        const ctx = error?.context || {};
+        const resp = error?.response || {};
+        let jsonCandidate = null;
+        if (ctx && typeof ctx.json === "function") {
+            try { jsonCandidate = await ctx.json(); } catch (_) { jsonCandidate = null; }
         }
-    });
-    if (error) throw error;
-    if (!data?.output_url) throw new Error("Sanal giydirme sonucu alınamadı.");
-    return data.output_url;
+        if (!jsonCandidate && typeof error?.context === "object" && error?.context?.error) {
+            jsonCandidate = error.context;
+        }
+        if (!jsonCandidate && resp && typeof resp.json === "function") {
+            try { jsonCandidate = await resp.json(); } catch (_) { jsonCandidate = null; }
+        }
+        if (!jsonCandidate) {
+            let rawText = null;
+            if (ctx && typeof ctx.text === "function") {
+                try { rawText = await ctx.text(); } catch (_) {}
+            }
+            if (!rawText && resp && typeof resp.text === "function") {
+                try { rawText = await resp.text(); } catch (_) {}
+            }
+            edgeRawText = rawText || null;
+            if (rawText) {
+                try { jsonCandidate = JSON.parse(rawText); } catch (_) { jsonCandidate = null; }
+            }
+        }
+        if (!jsonCandidate && error && (error.error || error.details)) {
+            jsonCandidate = { error: error.error, details: error.details };
+        }
+        edgeBody = jsonCandidate;
+        edgeErrorMsg = jsonCandidate?.error || error?.message || edgeBody?.message || error?.context?.message || "Edge Function tarafında açıklanmamış hata";
+        edgeDetails = jsonCandidate?.details || error?.details || (jsonCandidate && (jsonCandidate.reason || jsonCandidate.raw)) || null;
+    }
+
+    console.groupCollapsed("[invokeVirtualTryOn] Edge Function HATALI veya output_url eksik döndü");
+    console.error("error nesnesi:", error);
+    console.error("httpStatus:", httpStatus);
+    console.error("isFunctionsHttpError:", isFunctionsHttpError);
+    console.error("Supabase FunctionsHttpError.message (genel):", error?.message);
+    console.error("Edge Function body (JSON):", edgeBody);
+    console.error("Edge body içindeki 'error' alanı:", edgeErrorMsg);
+    console.error("Edge body içindeki 'details' alanı (varsa):", edgeDetails);
+    console.error("Edge body ham text (varsa):", edgeRawText);
+    console.error("data (varsa):", data);
+    console.error("data?.output_url (varsa):", data?.output_url);
+    console.groupEnd();
+
+    if (isFunctionsHttpError) {
+        const statusPart = typeof httpStatus === "number" ? ` (HTTP ${httpStatus})` : "";
+        const parts = [];
+        if (edgeErrorMsg) parts.push(String(edgeErrorMsg));
+        if (edgeDetails && String(edgeDetails) !== String(edgeErrorMsg)) parts.push(String(edgeDetails));
+        const combined = parts.length ? parts.join(" | ") : (error?.message || "Bilinmeyen Edge Function hatası");
+        const userMsg = `Sanal giydirme başarısız${statusPart}: ${combined}`.slice(0, 600);
+        const enrichedErr = new Error(userMsg);
+        enrichedErr.cause = error;
+        enrichedErr.vto = {
+            httpStatus,
+            edgeError: edgeErrorMsg,
+            edgeDetails,
+            edgeBody,
+            edgeRawText
+        };
+        throw enrichedErr;
+    }
+
+    if (error) {
+        const enrichedErr = new Error(`Sanal giydirme çağrısı başarısız: ${error.message || "Bilinmeyen hata"}`);
+        enrichedErr.cause = error;
+        throw enrichedErr;
+    }
+
+    throw new Error("Sanal giydirme sonucu alınamadı (output_url eksik). Edge Function yanıtı: " + JSON.stringify(data || {}).slice(0, 300));
 }
 
 function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
@@ -719,18 +822,33 @@ window.surRunVTOFromCard = async function (productId, buttonEl) {
         }
         return window.surRunVTOFromCard.__internalRun(product, lastRoomImageDataUrl, buttonEl);
     } catch (err) {
-        console.error("VTO kart butonu hatası:", err);
+        const vto = err?.vto;
+        console.groupCollapsed("VTO kart butonu hatası (surRunVTOFromCard)");
+        console.error("Hata:", err);
+        console.error("Mesaj:", err?.message);
+        if (vto) {
+            console.error("VTO HTTP status:", vto.httpStatus);
+            console.error("VTO edge error:", vto.edgeError);
+            console.error("VTO edge details:", vto.edgeDetails);
+            console.error("VTO edge body:", vto.edgeBody);
+        }
+        console.error("Cause:", err?.cause);
+        console.error("Stack:", err?.stack);
+        console.groupEnd();
         const messagesContainer = document.getElementById("aiChatMessages");
         if (messagesContainer) {
             const errMsg = document.createElement("div");
             errMsg.className = "ai-msg ai-msg-bot";
-            errMsg.textContent = `Sanal deneme başlatılamadı: ${err.message}`;
+            const base = err?.message ? String(err.message) : "Bilinmeyen hata";
+            const parts = [base];
+            if (vto?.edgeDetails && !base.includes(String(vto.edgeDetails))) parts.push("Detay: " + String(vto.edgeDetails).slice(0, 220));
+            errMsg.textContent = `Sanal deneme başlatılamadı — ${parts.join(" | ").slice(0, 700)}`;
             messagesContainer.appendChild(errMsg);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         if (buttonEl) {
-            buttonEl.disabled = false;
-            buttonEl.textContent = "Odamda Gör";
+            buttonEl.disabled = Boolean(lastRoomImageDataUrl) ? false : true;
+            buttonEl.textContent = lastRoomImageDataUrl ? "Odamda Gör" : "Önce Oda Yükleyin";
         }
         throw err;
     }
@@ -761,8 +879,28 @@ window.surRunVTOFromCard.__internalRun = async function (product, roomImage, but
         messagesContainer.appendChild(result);
         loading.remove();
     } catch (error) {
-        console.error("Sanal giydirme başarısız:", error);
-        loading.textContent = "Sanal giydirme sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+        const vto = error?.vto;
+        console.groupCollapsed("Sanal giydirme başarısız (__internalRun catch)");
+        console.error("Hata nesnesi:", error);
+        console.error("Mesaj:", error?.message);
+        if (vto) {
+            console.error("HTTP status:", vto.httpStatus);
+            console.error("Edge/Replicate error:", vto.edgeError);
+            console.error("Edge/Replicate details:", vto.edgeDetails);
+            console.error("Edge/Replicate body (JSON):", vto.edgeBody);
+            console.error("Edge/Replicate raw text (varsa):", vto.edgeRawText);
+        }
+        console.error("Cause:", error?.cause);
+        console.error("Stack:", error?.stack);
+        console.error("Name:", error?.name);
+        console.groupEnd();
+        const base = error?.message ? String(error.message) : "Sanal giydirme sırasında bir hata oluştu.";
+        const parts = [base];
+        if (vto?.edgeDetails && !base.includes(String(vto.edgeDetails))) {
+            parts.push("Replicate/Edge Detay: " + String(vto.edgeDetails).slice(0, 220));
+        }
+        const combined = parts.join(" | ").slice(0, 800);
+        loading.textContent = combined;
         buttonEl.disabled = Boolean(lastRoomImageDataUrl) ? false : true;
         buttonEl.textContent = lastRoomImageDataUrl ? "Odamda Gör" : "Önce Oda Yükleyin";
     }
