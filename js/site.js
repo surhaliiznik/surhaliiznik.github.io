@@ -8,6 +8,34 @@ window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_U
 let assistantProducts = [];
 let assistantProductsReady = Promise.resolve();
 let lastRoomImageDataUrl = "";
+window.site_settings = window.site_settings || {};
+
+async function loadSiteSettings() {
+    if (!window.surClient) return;
+    try {
+        const { data, error } = await window.surClient
+            .from("site_settings")
+            .select("*")
+            .limit(1);
+        if (error) {
+            console.error("site_settings yüklenemedi (sorgu hatası):", error);
+            return;
+        }
+        const row = data?.[0];
+        if (row) {
+            window.site_settings = Object.assign({}, window.site_settings, row);
+            if (window.site_settings.openrouter_api_key) {
+                console.info("site_settings yüklendi. openrouter_api_key mevcut.");
+            } else {
+                console.warn("site_settings tablosunda openrouter_api_key tanımlı değil veya boş.");
+            }
+        } else {
+            console.warn("site_settings tablosunda kayıt bulunamadı.");
+        }
+    } catch (err) {
+        console.error("site_settings yüklenirken beklenmeyen hata:", err);
+    }
+}
 
 const categoryLinks = {
     "Halılar": "halilar.html?category=Halılar",
@@ -272,57 +300,57 @@ function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
     });
 }
 
-async function analyzeRoomImage(imageDataUrl) {
-    console.log("Groq Vision analiz fonksiyonu başladı.");
-    console.log("Groq Vision isteği hazırlanıyor. Görsel Base64 uzunluğu:", imageDataUrl.length);
+async function analyzeRoom(base64Image) {
     try {
-        console.log("Groq Vision API fetch çağrısı başlatılıyor.");
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        if (!window.site_settings || !window.site_settings.openrouter_api_key) {
+            throw new Error("OpenRouter API anahtarı (site_settings.openrouter_api_key) bulunamadı veya boş!");
+        }
+
+        const formattedImage = base64Image.startsWith("data:")
+            ? base64Image
+            : `data:image/jpeg;base64,${base64Image}`;
+
+        const endpointUrl = "https://openrouter.ai/api/v1/chat/completions".trim();
+        const response = await fetch(endpointUrl, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${GROQ_API_KEY}`,
-                "Content-Type": "application/json"
+                "Authorization": `Bearer ${window.site_settings.openrouter_api_key}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": window.location.origin,
+                "X-Title": "Sur Hali Iznik VTO"
             },
             body: JSON.stringify({
-                model: "qwen/qwen3.8-27b",
-                messages: [{
-                    role: "user",
-                    content: [
-                        { type: "text", text: "Bu odanın zeminine uygun halı tavsiyesi ver." },
-                        { type: "image_url", image_url: { url: imageDataUrl } }
-                    ]
-                }]
+                model: "google/gemini-flash-1.5",
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: "Bu oda görselini analiz et ve renk, tarz ile ortam özelliklerini değerlendirerek uygun halı önerilerinde bulun."
+                            },
+                            {
+                                type: "image_url",
+                                image_url: {
+                                    url: formattedImage
+                                }
+                            }
+                        ]
+                    }
+                ]
             })
         });
-        console.log("Groq Vision API yanıtı alındı. HTTP:", response.status);
-        const responseText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (parseError) {
-            data = { raw: responseText };
-        }
+
         if (!response.ok) {
-            console.error("Groq Vision API hatası:", {
-                status: response.status,
-                statusText: response.statusText,
-                error: data.error,
-                raw: data.raw,
-                response: data
-            });
-            throw new Error(data.error?.message || "Oda görseli analiz edilemedi.");
+            const errorData = await response.json();
+            throw new Error(`OpenRouter API Hatası: ${response.status} - ${JSON.stringify(errorData)}`);
         }
-        const analysis = data.choices?.[0]?.message?.content?.trim();
-        if (!analysis) {
-            console.error("Groq Vision API boş yanıt döndürdü:", data);
-            throw new Error("Oda analizi boş döndü.");
-        }
-        console.log("Groq Vision analizi başarıyla alındı.");
-        return analysis;
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+
     } catch (error) {
-        if (!error.message?.includes("Oda görseli analiz edilemedi") && !error.message?.includes("Oda analizi boş")) {
-            console.error("Groq Vision API bağlantı/yanıt hatası:", error);
-        }
+        console.error("Oda Görseli Analiz Hatası (js/site.js):", error);
         throw error;
     }
 }
@@ -588,6 +616,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadFeaturedProducts();
     loadCategoryCovers();
     loadHeroBackground();
+    loadSiteSettings();
     assistantProductsReady = loadAssistantProducts();
     setupCatalogFilters();
 
@@ -636,8 +665,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             console.log("Oda görseli için Groq Vision isteği başlatılıyor.");
-            console.log("simulateRoom API isteğinin ortasında: analyzeRoomImage çağrılıyor.");
-            const analysis = await analyzeRoomImage(imageDataUrl);
+            console.log("simulateRoom API isteğinin ortasında: analyzeRoom çağrılıyor.");
+            const analysis = await analyzeRoom(imageDataUrl);
             console.log("simulateRoom Vision yanıtı işlendi.");
             const matchedProducts = findAssistantProducts(analysis);
             const recommendations = matchedProducts.length ? matchedProducts : assistantProducts.slice(0, 2);
