@@ -600,14 +600,24 @@ function renderAssistantProductCards(products, roomImage = "") {
         const title = productTitle(product);
         const imageUrl = product.image_url || "assets/images/logo.jpeg";
         const hasRoomImage = Boolean(roomImage || lastRoomImageDataUrl);
+        const productId = escapeHTML(product.id || "");
+        const productJson = escapeHTML(JSON.stringify({ id: product.id, image_url: imageUrl, category: product.category, slug: product.slug, title, price: product.price, size: product.size, description: product.description }));
 
         return `
-            <article class="ai-product-card">
+            <article class="ai-product-card" data-product-json='${productJson}'>
                 <img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
                 <strong class="ai-product-card-title">${escapeHTML(title)}</strong>
                 <div class="ai-product-card-buttons">
                     <a class="ai-product-btn ai-product-btn-link" href="${escapeHTML(productLink(product))}">Ürünü İncele</a>
-                    ${hasRoomImage ? `<button type="button" class="ai-product-btn ai-product-btn-tryon ai-try-on-button" data-product-id="${escapeHTML(product.id || "")}">Odamda Gör</button>` : ""}
+                    <button type="button"
+                            class="ai-product-btn ai-product-btn-tryon vto-btn ai-try-on-button"
+                            data-action="vto"
+                            data-product-id="${productId}"
+                            ${hasRoomImage ? "" : "disabled"}
+                            title="${hasRoomImage ? "Bu halıyı seçtiğiniz oda fotoğrafında gör" : "Önce oda fotoğrafı yükleyin"}"
+                            onclick="window.surRunVTOFromCard('${productId}', this)">
+                        ${hasRoomImage ? "Odamda Gör" : "Önce Oda Yükleyin"}
+                    </button>
                 </div>
             </article>
         `;
@@ -620,6 +630,75 @@ async function runVTO(product, roomImageOverride) {
     if (!roomImage) throw new Error("Önce bir oda fotoğrafı yükleyin.");
     return invokeVirtualTryOn(product, roomImage);
 }
+
+window.surRunVTOFromCard = async function (productId, buttonEl) {
+    try {
+        if (!productId) throw new Error("Ürün kimliği eksik.");
+        if (!lastRoomImageDataUrl) throw new Error("Önce sohbetin altındaki + butonundan bir oda fotoğrafı yükleyin.");
+        const product = assistantProducts.find(item => String(item.id) === String(productId));
+        if (!product && buttonEl) {
+            try {
+                const raw = buttonEl.closest("[data-product-json]")?.getAttribute("data-product-json");
+                if (raw) {
+                    const restored = JSON.parse(raw);
+                    if (restored && restored.id) {
+                        const fromTable = assistantProducts.find(p => String(p.id) === String(restored.id));
+                        return window.surRunVTOFromCard.__internalRun(fromTable || restored, lastRoomImageDataUrl, buttonEl);
+                    }
+                }
+            } catch (_) {}
+        }
+        return window.surRunVTOFromCard.__internalRun(product, lastRoomImageDataUrl, buttonEl);
+    } catch (err) {
+        console.error("VTO kart butonu hatası:", err);
+        const messagesContainer = document.getElementById("aiChatMessages");
+        if (messagesContainer) {
+            const errMsg = document.createElement("div");
+            errMsg.className = "ai-msg ai-msg-bot";
+            errMsg.textContent = `Sanal deneme başlatılamadı: ${err.message}`;
+            messagesContainer.appendChild(errMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        if (buttonEl) {
+            buttonEl.disabled = false;
+            buttonEl.textContent = "Odamda Gör";
+        }
+        throw err;
+    }
+};
+
+window.surRunVTOFromCard.__internalRun = async function (product, roomImage, buttonEl) {
+    if (!product) throw new Error("Ürün kataloğuda bulunamadı.");
+    const messagesContainer = document.getElementById("aiChatMessages");
+    if (!messagesContainer) throw new Error("Sohbet alanı bulunamadı.");
+    buttonEl.disabled = true;
+    buttonEl.textContent = "Giydiriliyor...";
+    const loading = document.createElement("div");
+    loading.className = "ai-msg ai-msg-bot ai-try-on-loading";
+    loading.textContent = "Odanıza halı giydiriliyor (5-10 sn)...";
+    messagesContainer.appendChild(loading);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    try {
+        const outputUrl = await runVTO(product, roomImage);
+        try {
+            await consumeRemoteTryOnCredit();
+            consumeTryOnCredit();
+        } catch (creditErr) {
+            console.warn("Kredi düşürme başarısız, görsel gösterilecek:", creditErr);
+        }
+        const result = document.createElement("div");
+        result.className = "ai-msg ai-msg-bot ai-try-on-result";
+        result.innerHTML = `<img src="${escapeHTML(outputUrl)}" alt="Sanal olarak halı yerleştirilmiş oda"><div class="ai-try-on-actions"><a class="ai-category-link" href="${escapeHTML(outputUrl)}" download="sur-hali-sanal-giydirme.jpg">Resmi İndir</a><a class="ai-category-link" target="_blank" rel="noopener" href="https://wa.me/905396369095?text=${encodeURIComponent("Sanal halı görseli hakkında bilgi almak istiyorum: " + outputUrl)}">WhatsApp'tan Gönder</a></div>`;
+        messagesContainer.appendChild(result);
+        loading.remove();
+    } catch (error) {
+        console.error("Sanal giydirme başarısız:", error);
+        loading.textContent = "Sanal giydirme sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+        buttonEl.disabled = Boolean(lastRoomImageDataUrl) ? false : true;
+        buttonEl.textContent = lastRoomImageDataUrl ? "Odamda Gör" : "Önce Oda Yükleyin";
+    }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+};
 
 document.addEventListener("DOMContentLoaded", function () {
     console.log("DOM yüklendi, sohbet görsel yükleme akışı hazırlanıyor.");
