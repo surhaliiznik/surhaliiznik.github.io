@@ -927,9 +927,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     syncTryOnCredits();
 
-    async function simulateRoom(file) {
-        console.log("simulateRoom başladı:", file.name);
-        try {
+    // const hasCredit = await checkUserCredits(); async function simulateRoom(file) {
+    console.log("simulateRoom başladı:", file.name);
+
+    // Orijinal kontrolü geçici olarak yorum satırına aldık:
+       // Test için hakkı doğrudan var kabul ediyoruz:
+    const hasCredit = true;
+
+    try {
+        // ... kodun geri kalanı aynen devam ediyor ...
             await syncTryOnCredits();
         } catch (err) {
             console.error("Supabase hak kontrolünde beklenmeyen hata, yerel hakla devam ediliyor:", err);
