@@ -301,56 +301,125 @@ function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
 }
 
 async function analyzeRoom(base64Image) {
+    console.log("[analyzeRoom] başladı. base64Image uzunluğu:", base64Image?.length || 0);
     try {
-        if (!window.site_settings || !window.site_settings.openrouter_api_key) {
-            throw new Error("OpenRouter API anahtarı (site_settings.openrouter_api_key) bulunamadı veya boş!");
+        if (!base64Image) {
+            throw new Error("Oda görseli içeriği boş geldi (base64Image tanımsız).");
         }
+        if (!window.site_settings?.openrouter_api_key) {
+            console.warn("[analyzeRoom] site_settings.openrouter_api_key henüz yüklenmemiş, loadSiteSettings bekleniyor...");
+            await loadSiteSettings();
+            if (!window.site_settings?.openrouter_api_key) {
+                throw new Error("OpenRouter API anahtarı (site_settings.openrouter_api_key) bulunamadı veya boş! Supabase site_settings tablosundaki openrouter_api_key sütununu kontrol edin.");
+            }
+            console.log("[analyzeRoom] site_settings beklendi ve openrouter_api_key yüklendi.");
+        }
+        const apiKey = String(window.site_settings.openrouter_api_key).trim();
+        console.log("[analyzeRoom] kullanılacak API anahtarı (son 4): ...", apiKey.slice(-4));
 
         const formattedImage = base64Image.startsWith("data:")
             ? base64Image
             : `data:image/jpeg;base64,${base64Image}`;
 
         const endpointUrl = "https://openrouter.ai/api/v1/chat/completions".trim();
-        const response = await fetch(endpointUrl, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${window.site_settings.openrouter_api_key}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": window.location.origin,
-                "X-Title": "Sur Hali Iznik VTO"
-            },
-            body: JSON.stringify({
-                model: "google/gemini-flash-1.5",
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: "Bu oda görselini analiz et ve renk, tarz ile ortam özelliklerini değerlendirerek uygun halı önerilerinde bulun."
-                            },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    url: formattedImage
-                                }
+        const candidateModels = [
+            "qwen/qwen2.5-vl-72b-instruct",
+            "google/gemini-2.0-flash-exp:free"
+        ];
+        const userPrompt = "Bu oda görselini analiz et ve renk, tarz ile ortam özelliklerini değerlendirerek uygun halı önerilerinde bulun.";
+        const buildPayload = (m) => ({
+            model: m,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: userPrompt },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: formattedImage,
+                                detail: "low"
                             }
-                        ]
-                    }
-                ]
-            })
+                        }
+                    ]
+                }
+            ]
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`OpenRouter API Hatası: ${response.status} - ${JSON.stringify(errorData)}`);
+        let lastError = null;
+        let modelIndex = 0;
+        let data = null;
+        let usedModel = null;
+        while (modelIndex < candidateModels.length) {
+            const modelName = candidateModels[modelIndex];
+            usedModel = modelName;
+            modelIndex++;
+            console.log("[analyzeRoom] istek hazırlanıyor. endpoint:", endpointUrl, "model:", modelName);
+            const requestPayload = buildPayload(modelName);
+            try {
+                const response = await fetch(endpointUrl, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`,
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": window.location.origin,
+                        "X-Title": "Sur Hali Iznik VTO"
+                    },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                console.log(`[analyzeRoom] [${modelName}] yanıt durumu:`, response.status, response.statusText);
+                const responseText = await response.text();
+                let stepData = null;
+                try {
+                    stepData = JSON.parse(responseText);
+                } catch (parseErr) {
+                    console.error(`[analyzeRoom] [${modelName}] yanıt JSON parse edilemedi. Ham (ilk 1500):`, responseText?.slice?.(0, 1500));
+                    stepData = { raw: responseText };
+                }
+
+                if (!response.ok) {
+                    const errDetail = stepData && (stepData.error || stepData.raw)
+                        ? (typeof stepData.error === "string" ? stepData.error : (stepData.error?.message || JSON.stringify(stepData.error || stepData.raw)))
+                        : "Açıklanamayan API hatası";
+                    console.error(`[analyzeRoom] [${modelName}] HATALI:`, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        errDetail,
+                        fullData: stepData,
+                        rawTail: responseText?.slice?.(-1000)
+                    });
+                    lastError = new Error(`[${modelName}] OpenRouter API Hatası: ${response.status} ${response.statusText} — ${errDetail}`);
+                    continue;
+                }
+
+                const analysis = stepData?.choices?.[0]?.message?.content?.trim?.();
+                if (!analysis) {
+                    console.error(`[analyzeRoom] [${modelName}] yanıt boş veya format dışı. choices:`, stepData?.choices, "tam data:", stepData);
+                    lastError = new Error(`[${modelName}] Oda analizi yanıtı boş döndü.`);
+                    continue;
+                }
+                console.log(`[analyzeRoom] [${modelName}] BAŞARILI. Analiz (ilk 200):`, analysis.slice(0, 200));
+                data = stepData;
+                return analysis;
+            } catch (networkErr) {
+                console.error(`[analyzeRoom] [${modelName}] Ağ/fetch hatası:`, networkErr);
+                lastError = networkErr;
+                continue;
+            }
         }
 
-        const data = await response.json();
-        return data.choices[0].message.content;
+        if (lastError) throw lastError;
+        throw new Error("Tüm OpenRouter vision modelleri denendi ancak oda analizi tamamlanamadı.");
 
     } catch (error) {
-        console.error("Oda Görseli Analiz Hatası (js/site.js):", error);
+        console.groupCollapsed("Oda Görseli Analiz Hatası (js/site.js - analyzeRoom)");
+        console.error("Hata nesnesi:", error);
+        console.error("Mesaj:", error?.message);
+        console.error("Stack:", error?.stack);
+        console.error("Cause:", error?.cause);
+        console.error("Name:", error?.name);
+        console.groupEnd();
         throw error;
     }
 }
@@ -740,6 +809,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         console.log("Seçilen dosya canvas sıkıştırmasına gönderiliyor.");
         const imageDataUrl = await compressImageToDataUrl(file, 800, 0.7);
+        if (!imageDataUrl) {
+            throw new Error("Fotoğraf sıkıştırılamadı veya boş döndü. Lütfen farklı bir görsel deneyin.");
+        }
+        lastRoomImageDataUrl = imageDataUrl;
+        console.log("Sıkıştırılmış görsel hazır, lastRoomImageDataUrl GLOBAL state'e atandı. Uzunluk:", imageDataUrl.length);
         console.log("Sıkıştırılmış görsel hazır, önizleme oluşturuluyor.");
         const preview = document.createElement("div");
         preview.className = "ai-msg ai-msg-user ai-room-preview";
@@ -766,7 +840,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (recommendations.length) {
                 const cards = document.createElement("div");
                 cards.className = "ai-product-cards";
-                lastRoomImageDataUrl = imageDataUrl;
                 cards.innerHTML = renderAssistantProductCards(recommendations.slice(0, 2), imageDataUrl);
                 analysisMessage.appendChild(cards);
                 console.log("Oda önerileri gösterildi; giydirme hakkı buton tıklamasında düşürülecek.");
@@ -801,9 +874,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             }
         } catch (err) {
-            console.error("Sanal halı oda analizi başarısız:", err);
-            console.error("GİZLİ HATA DETAYI:", err);
-            analysisMessage.textContent = "Oda görseli analiz edilemedi. Lütfen tekrar deneyin veya WhatsApp hattımızdan destek alın.";
+            console.groupCollapsed("Sanal halı oda analizi başarısız (simulateRoom catch)");
+            console.error("Hata:", err);
+            console.error("Mesaj:", err?.message);
+            console.error("Stack:", err?.stack);
+            console.groupEnd();
+            const realMessage = err?.message ? String(err.message).trim() : "";
+            const shortError = realMessage.length > 0 && realMessage.length < 220
+                ? realMessage
+                : realMessage.slice(0, 210) + "…";
+            const userMsg = shortError
+                ? `Oda görseli analiz edilemedi. Lütfen tekrar deneyin veya WhatsApp hattımızdan destek alın. (Detay: ${shortError})`
+                : "Oda görseli analiz edilemedi. Lütfen tekrar deneyin veya WhatsApp hattımızdan destek alın.";
+            analysisMessage.textContent = userMsg;
+            if (err?.message?.includes("analiz edilemedi") || err?.message?.includes("Hatası")) throw err;
             throw err;
         }
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
