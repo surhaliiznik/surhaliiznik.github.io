@@ -599,16 +599,26 @@ function renderAssistantProductCards(products, roomImage = "") {
     return products.map(product => {
         const title = productTitle(product);
         const imageUrl = product.image_url || "assets/images/logo.jpeg";
+        const hasRoomImage = Boolean(roomImage || lastRoomImageDataUrl);
 
         return `
             <article class="ai-product-card">
                 <img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
-                <strong>${escapeHTML(title)}</strong>
-                <a class="ai-category-link" href="${escapeHTML(productLink(product))}">Ürünü İncele</a>
-                ${roomImage ? `<button type="button" class="ai-try-on-button" data-product-id="${escapeHTML(product.id || "")}">Bu Halıyı Odamda Gör</button>` : ""}
+                <strong class="ai-product-card-title">${escapeHTML(title)}</strong>
+                <div class="ai-product-card-buttons">
+                    <a class="ai-product-btn ai-product-btn-link" href="${escapeHTML(productLink(product))}">Ürünü İncele</a>
+                    ${hasRoomImage ? `<button type="button" class="ai-product-btn ai-product-btn-tryon ai-try-on-button" data-product-id="${escapeHTML(product.id || "")}">Odamda Gör</button>` : ""}
+                </div>
             </article>
         `;
     }).join("");
+}
+
+async function runVTO(product, roomImageOverride) {
+    const roomImage = roomImageOverride || lastRoomImageDataUrl;
+    if (!product) throw new Error("Ürün bulunamadı.");
+    if (!roomImage) throw new Error("Önce bir oda fotoğrafı yükleyin.");
+    return invokeVirtualTryOn(product, roomImage);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -693,7 +703,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         messagesContainer.appendChild(loading);
                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
                         try {
-                            const outputUrl = await invokeVirtualTryOn(product, lastRoomImageDataUrl);
+                            const outputUrl = await runVTO(product, imageDataUrl);
                             await consumeRemoteTryOnCredit();
                             consumeTryOnCredit();
                             const result = document.createElement("div");
@@ -705,7 +715,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             console.error("Sanal giydirme başarısız:", error);
                             loading.textContent = "Sanal giydirme sırasında bir hata oluştu. Lütfen tekrar deneyin.";
                             button.disabled = false;
-                            button.textContent = "Bu Halıyı Odamda Gör";
+                            button.textContent = "Odamda Gör";
                         }
                         messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     });
@@ -808,6 +818,43 @@ document.addEventListener("DOMContentLoaded", function () {
             cards.className = "ai-product-cards";
             cards.innerHTML = renderAssistantProductCards(matchedProducts);
             botMsg.appendChild(cards);
+            cards.querySelectorAll(".ai-try-on-button").forEach(button => {
+                button.addEventListener("click", async () => {
+                    const product = matchedProducts.find(item => String(item.id) === button.dataset.productId);
+                    if (!product) return;
+                    if (!lastRoomImageDataUrl) {
+                        const warn = document.createElement("div");
+                        warn.className = "ai-msg ai-msg-bot";
+                        warn.textContent = "Sanal deneme için önce sohbetin altındaki + butonundan oda fotoğrafı yükleyin.";
+                        messagesContainer.appendChild(warn);
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        return;
+                    }
+                    button.disabled = true;
+                    button.textContent = "Giydiriliyor...";
+                    const loading = document.createElement("div");
+                    loading.className = "ai-msg ai-msg-bot ai-try-on-loading";
+                    loading.textContent = "Odanıza halı giydiriliyor (5-10 sn)...";
+                    messagesContainer.appendChild(loading);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    try {
+                        const outputUrl = await runVTO(product, lastRoomImageDataUrl);
+                        await consumeRemoteTryOnCredit();
+                        consumeTryOnCredit();
+                        const result = document.createElement("div");
+                        result.className = "ai-msg ai-msg-bot ai-try-on-result";
+                        result.innerHTML = `<img src="${escapeHTML(outputUrl)}" alt="Sanal olarak halı yerleştirilmiş oda"><div class="ai-try-on-actions"><a class="ai-category-link" href="${escapeHTML(outputUrl)}" download="sur-hali-sanal-giydirme.jpg">Resmi İndir</a><a class="ai-category-link" target="_blank" rel="noopener" href="https://wa.me/905396369095?text=${encodeURIComponent("Sanal halı görseli hakkında bilgi almak istiyorum: " + outputUrl)}">WhatsApp'tan Gönder</a></div>`;
+                        messagesContainer.appendChild(result);
+                        loading.remove();
+                    } catch (error) {
+                        console.error("Sanal giydirme başarısız:", error);
+                        loading.textContent = "Sanal giydirme sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+                        button.disabled = false;
+                        button.textContent = "Odamda Gör";
+                    }
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                });
+            });
         }
 
         if (needsStoreSupport(text)) {
