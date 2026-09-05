@@ -1,5 +1,3 @@
-/* SUR HALI - KESİN ÇALIŞAN GİTHUB JS KODU */
-
 if (!window.__SUR_SITE_JS_LOADED__) {
     window.__SUR_SITE_JS_LOADED__ = true;
 
@@ -118,13 +116,7 @@ if (!window.__SUR_SITE_JS_LOADED__) {
             .eq("is_active", true);
 
         if (error) {
-            console.error("Asistan ürün hafızası yüklenemedi. products sorgusu hata verdi:", {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code,
-                error
-            });
+            console.error("Asistan ürün hafızası yüklenemedi. products sorgusu hata verdi:", error);
             return;
         }
 
@@ -135,24 +127,6 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
 
         console.info(`Asistan ürün hafızası hazır: ${assistantProducts.length} aktif ürün yüklendi.`);
-    }
-
-    function assistantProductContext() {
-        return assistantProducts.map(product => ({
-            id: product.id,
-            slug: product.slug || null,
-            title: productTitle(product),
-            category: product.category || "",
-            image_url: product.image_url || ""
-        }));
-    }
-
-    function needsStoreSupport(message) {
-        const normalizedMessage = message.toLocaleLowerCase("tr-TR");
-        return normalizedMessage.includes("özel ölçü") || normalizedMessage.includes("özel olcu") ||
-            normalizedMessage.includes("özel kesim") || normalizedMessage.includes("fiyat teklifi") ||
-            normalizedMessage.includes("kararsız") || normalizedMessage.includes("kararsiz") ||
-            normalizedMessage.includes("emin değil") || normalizedMessage.includes("emin degil");
     }
 
     function getTryOnDeviceId() {
@@ -169,10 +143,7 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         const storedValue = localStorage.getItem("tryOnCredits");
         const storedCredits = Number.parseInt(storedValue, 10);
         if (storedValue !== "unlimited" && Number.isNaN(storedCredits)) localStorage.setItem("tryOnCredits", "2");
-        if (!window.surClient) {
-            console.error("Supabase hak kontrolü başarısız: istemci hazır değil. Yerel 2 hakla devam ediliyor.");
-            return;
-        }
+        if (!window.surClient) return;
 
         let { data, error } = await window.surClient
             .from("user_credits")
@@ -181,7 +152,6 @@ if (!window.__SUR_SITE_JS_LOADED__) {
             .maybeSingle();
 
         if (error) {
-            console.error("user_credits okunamadı, site_settings fallback deneniyor:", error);
             const fallback = await window.surClient
                 .from("site_settings")
                 .select("id,identifier,try_on_credits,try_on_unlimited,updated_at")
@@ -193,11 +163,6 @@ if (!window.__SUR_SITE_JS_LOADED__) {
                 is_unlimited: fallback.data.try_on_unlimited,
                 updated_at: fallback.data.updated_at
             } : null;
-            error = fallback.error;
-            if (error) {
-                console.error("Sanal halı hak kaydı okunamadı:", error);
-                return;
-            }
         }
         if (!data) return;
         if (data.is_unlimited === true) {
@@ -213,174 +178,14 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
     }
 
-    function getTryOnCredits() {
-        const value = localStorage.getItem("tryOnCredits");
-        return value === "unlimited" ? Infinity : Math.max(0, Number.parseInt(value, 10) || 0);
-    }
-
-    function consumeTryOnCredit() {
-        const credits = getTryOnCredits();
-        if (credits !== Infinity) localStorage.setItem("tryOnCredits", String(Math.max(0, credits - 1)));
-    }
-
-    async function consumeRemoteTryOnCredit() {
-        if (!window.surClient) return;
-
-        const deviceId = getTryOnDeviceId();
-        const { data, error } = await window.surClient
-            .from("user_credits")
-            .select("id,credits,is_unlimited")
-            .eq("identifier", deviceId)
-            .maybeSingle();
-
-        if (error || !data || data.is_unlimited === true) return;
-
-        const nextCredits = Math.max(0, (Number(data.credits) || 0) - 1);
-        const { error: updateError } = await window.surClient
-            .from("user_credits")
-            .update({ credits: nextCredits, updated_at: new Date().toISOString() })
-            .eq("id", data.id);
-
-        if (updateError) console.error("Sanal giydirme hakkı düşürülemedi:", updateError);
-    }
-
-    async function invokeVirtualTryOn(product, roomImage) {
-        if (!window.surClient) throw new Error("Sanal giydirme servisi hazır değil (surClient yok).");
-        const productImage = product?.image_url;
-        if (!productImage) throw new Error("Bu ürünün görseli bulunamadı (product.image_url eksik).");
-        if (!roomImage) throw new Error("Oda görseli boş, VTO çalıştırılamaz.");
-
-        const payload = {
-            room_image: roomImage,
-            product_image: productImage,
-            product_id: product?.id
-        };
-        console.log("[invokeVirtualTryOn] Edge Function çağrılıyor. product_id:", payload.product_id,
-            "room_image uzunluğu:", String(payload.room_image || "").length,
-            "product_image:", String(payload.product_image || "").slice(0, 120));
-
-        let rawResult;
-        try {
-            rawResult = await window.surClient.functions.invoke("virtual-try-on", { body: payload });
-        } catch (networkErr) {
-            console.groupCollapsed("[invokeVirtualTryOn] Ağ/network hatası (fetch atıldı ama cevap alınamadı)");
-            console.error("Hata nesnesi:", networkErr);
-            console.error("Mesaj:", networkErr?.message);
-            console.error("Stack:", networkErr?.stack);
-            console.error("Name:", networkErr?.name);
-            console.groupEnd();
-            const enriched = new Error(`Sanal giydirme servisine ulaşılamadı (ağ hatası): ${networkErr?.message || "Bilinmeyen ağ hatası"}`);
-            enriched.cause = networkErr;
-            throw enriched;
-        }
-
-        const { data, error } = rawResult || {};
-        if (!error && data?.output_url) {
-            console.log("[invokeVirtualTryOn] BAŞARILI. output_url:", String(data.output_url).slice(0, 140));
-            return data.output_url;
-        }
-
-        const httpStatus = error?.status || error?.context?.responseStatus || (typeof error?.response?.status === "number" ? error.response.status : undefined);
-        const isFunctionsHttpError = error?.name === "FunctionsHttpError" ||
-            (typeof httpStatus === "number" && httpStatus >= 400) ||
-            (error && typeof error.context === "object");
-
-        let edgeBody = null;
-        let edgeErrorMsg = null;
-        let edgeDetails = null;
-        let edgeRawText = null;
-        if (isFunctionsHttpError) {
-            const ctx = error?.context || {};
-            const resp = error?.response || {};
-            let jsonCandidate = null;
-            if (ctx && typeof ctx.json === "function") {
-                try { jsonCandidate = await ctx.json(); } catch (_) { jsonCandidate = null; }
-            }
-            if (!jsonCandidate && typeof error?.context === "object" && error?.context?.error) {
-                jsonCandidate = error.context;
-            }
-            if (!jsonCandidate && resp && typeof resp.json === "function") {
-                try { jsonCandidate = await resp.json(); } catch (_) { jsonCandidate = null; }
-            }
-            if (!jsonCandidate) {
-                let rawText = null;
-                if (ctx && typeof ctx.text === "function") {
-                    try { rawText = await ctx.text(); } catch (_) {}
-                }
-                if (!rawText && resp && typeof resp.text === "function") {
-                    try { rawText = await resp.text(); } catch (_) {}
-                }
-                edgeRawText = rawText || null;
-                if (rawText) {
-                    try { jsonCandidate = JSON.parse(rawText); } catch (_) { jsonCandidate = null; }
-                }
-            }
-            if (!jsonCandidate && error && (error.error || error.details)) {
-                jsonCandidate = { error: error.error, details: error.details };
-            }
-            edgeBody = jsonCandidate;
-            edgeErrorMsg = jsonCandidate?.error || error?.message || edgeBody?.message || error?.context?.message || "Edge Function tarafında açıklanmamış hata";
-            edgeDetails = jsonCandidate?.details || error?.details || (jsonCandidate && (jsonCandidate.reason || jsonCandidate.raw)) || null;
-        }
-
-        console.groupCollapsed("[invokeVirtualTryOn] Edge Function HATALI veya output_url eksik döndü");
-        console.error("error nesnesi:", error);
-        console.error("httpStatus:", httpStatus);
-        console.error("isFunctionsHttpError:", isFunctionsHttpError);
-        console.error("Supabase FunctionsHttpError.message (genel):", error?.message);
-        console.error("Edge Function body (JSON):", edgeBody);
-        console.error("Edge body içindeki 'error' alanı:", edgeErrorMsg);
-        console.error("Edge body içindeki 'details' alanı (varsa):", edgeDetails);
-        console.error("Edge body ham text (varsa):", edgeRawText);
-        console.error("data (varsa):", data);
-        console.error("data?.output_url (varsa):", data?.output_url);
-        console.groupEnd();
-
-        if (isFunctionsHttpError) {
-            const statusPart = typeof httpStatus === "number" ? ` (HTTP ${httpStatus})` : "";
-            const parts = [];
-            if (edgeErrorMsg) parts.push(String(edgeErrorMsg));
-            if (edgeDetails && String(edgeDetails) !== String(edgeErrorMsg)) parts.push(String(edgeDetails));
-            const combined = parts.length ? parts.join(" | ") : (error?.message || "Bilinmeyen Edge Function hatası");
-            const userMsg = `Sanal giydirme başarısız${statusPart}: ${combined}`.slice(0, 600);
-            const enrichedErr = new Error(userMsg);
-            enrichedErr.cause = error;
-            enrichedErr.vto = {
-                httpStatus,
-                edgeError: edgeErrorMsg,
-                edgeDetails,
-                edgeBody,
-                edgeRawText
-            };
-            throw enrichedErr;
-        }
-
-        if (error) {
-            const enrichedErr = new Error(`Sanal giydirme çağrısı başarısız: ${error.message || "Bilinmeyen hata"}`);
-            enrichedErr.cause = error;
-            throw enrichedErr;
-        }
-
-        throw new Error("Sanal giydirme sonucu alınamadı (output_url eksik). Edge Function yanıtı: " + JSON.stringify(data || {}).slice(0, 300));
-    }
-
     function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
-        console.log("Görsel sıkıştırma başlıyor:", file.name);
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onerror = () => {
-                console.error("FileReader görsel okuma hatası:", reader.error);
-                reject(reader.error || new Error("Görsel okunamadı."));
-            };
+            reader.onerror = () => reject(reader.error || new Error("Görsel okunamadı."));
             reader.onload = () => {
-                console.log("FileReader görseli okudu.");
                 const image = new Image();
-                image.onerror = () => {
-                    console.error("Görsel Image nesnesine yüklenemedi.");
-                    reject(new Error("Görsel boyutlandırılamadı."));
-                };
+                image.onerror = () => reject(new Error("Görsel yüklenemedi."));
                 image.onload = () => {
-                    console.log("Görsel boyutları:", image.width, "x", image.height);
                     let width = image.width;
                     let height = image.height;
 
@@ -401,20 +206,62 @@ if (!window.__SUR_SITE_JS_LOADED__) {
                     canvas.height = Math.max(1, height);
 
                     const ctx = canvas.getContext("2d");
-                    if (!ctx) {
-                        reject(new Error("Canvas context oluşturulamadı."));
-                        return;
-                    }
+                    if (!ctx) return reject(new Error("Canvas oluşturulamadı."));
 
                     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-                    const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
-                    console.log("Görsel başarıyla sıkıştırıldı. Data URL uzunluğu:", compressedDataUrl.length);
-                    resolve(compressedDataUrl);
+                    resolve(canvas.toDataURL("image/jpeg", quality));
                 };
                 image.src = reader.result;
             };
             reader.readAsDataURL(file);
         });
+    }
+
+    /* RESİM VE KAPAK YÜKLEME FONKSİYONLARI */
+    async function loadHeroBackground() {
+        const heroSection = document.querySelector('.hero, .hero-section');
+        if (!heroSection || !window.surClient) return;
+
+        const { data } = await window.surClient.from("site_settings").select("hero_bg_url").maybeSingle();
+        if (data?.hero_bg_url) {
+            heroSection.style.backgroundImage = `url('${data.hero_bg_url}')`;
+        }
+    }
+
+    async function loadCategoryCovers() {
+        if (!window.surClient) return;
+        const { data: categories } = await window.surClient.from("categories").select("*");
+        if (!categories) return;
+
+        categories.forEach(cat => {
+            const el = document.querySelector(`[data-category-cover="${cat.name}"]`);
+            if (el && cat.image_url) {
+                if (el.tagName === 'IMG') el.src = cat.image_url;
+                else el.style.backgroundImage = `url('${cat.image_url}')`;
+            }
+        });
+    }
+
+    async function loadFeaturedProducts() {
+        const container = document.getElementById("featured-products-container");
+        if (!container || !window.surClient) return;
+
+        const { data: products } = await window.surClient
+            .from("products")
+            .select("*")
+            .eq("is_active", true)
+            .eq("is_featured", true)
+            .limit(6);
+
+        if (!products || !products.length) return;
+
+        container.innerHTML = products.map(product => `
+            <div class="product-card">
+                <img src="${escapeHTML(product.image_url)}" alt="${escapeHTML(productTitle(product))}" loading="lazy">
+                <h3>${escapeHTML(productTitle(product))}</h3>
+                <a href="${productLink(product)}" class="btn-detail">İncele</a>
+            </div>
+        `).join("");
     }
 
     async function loadCatalogProducts(categoryName = "Halılar") {
@@ -463,11 +310,14 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
     }
 
-    // Sayfa yüklendiğinde tetiklenecek fonksiyonlar
+    // DOM Hazır Olduğunda Tüm Resimleri ve Verileri Yükle
     document.addEventListener("DOMContentLoaded", () => {
         loadSiteSettings();
         assistantProductsReady = loadAssistantProducts();
         syncTryOnCredits();
+        loadHeroBackground();
+        loadCategoryCovers();
+        loadFeaturedProducts();
 
         const category = new URLSearchParams(window.location.search).get("category") || "Halılar";
         loadCatalogProducts(category);
