@@ -1,6 +1,8 @@
+```javascript
 /* ==========================================================
    SUR HALI İZNİK
    ANA SITE JAVASCRIPT
+   TAM VE TEMİZ SÜRÜM
    ========================================================== */
 
 "use strict";
@@ -16,8 +18,7 @@ const SUR_SUPABASE_URL =
     "https://lhltolrtgnfkbwfkpaex.supabase.co";
 
 const SUR_SUPABASE_KEY =
-    "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
-
+    "sb_publishable_xdWMVRunpVSeiMw2vfGWyw_l6dTnBsn";
 
 window.surClient = null;
 
@@ -27,7 +28,11 @@ function initializeSupabase() {
     try {
 
         if (!window.supabase) {
-            console.error("❌ Supabase CDN yüklenmemiş.");
+
+            console.error(
+                "❌ Supabase CDN yüklenmemiş."
+            );
+
             return false;
         }
 
@@ -37,7 +42,9 @@ function initializeSupabase() {
                 SUR_SUPABASE_KEY
             );
 
-        console.log("✅ Supabase bağlantısı hazır.");
+        console.log(
+            "✅ Supabase bağlantısı hazır."
+        );
 
         return true;
 
@@ -88,7 +95,10 @@ function setImageSafely(
     }
 
     if (!url) {
-        img.src = fallback;
+
+        img.src =
+            fallback;
+
         return;
     }
 
@@ -100,11 +110,15 @@ function setImageSafely(
             return;
         }
 
-        this.dataset.fallbackApplied = "1";
-        this.src = fallback;
+        this.dataset.fallbackApplied =
+            "1";
+
+        this.src =
+            fallback;
     };
 
-    img.src = url;
+    img.src =
+        url;
 }
 
 
@@ -128,6 +142,7 @@ async function loadSiteSettings() {
             .select("*")
             .limit(1);
 
+
         if (error) {
 
             console.warn(
@@ -138,7 +153,10 @@ async function loadSiteSettings() {
             return;
         }
 
-        const settings = data?.[0];
+
+        const settings =
+            data?.[0];
+
 
         if (!settings) {
             return;
@@ -169,6 +187,7 @@ async function loadSiteSettings() {
             .forEach(element => {
 
                 if (settings.site_name) {
+
                     element.textContent =
                         settings.site_name;
                 }
@@ -182,6 +201,7 @@ async function loadSiteSettings() {
             document.querySelector(
                 "[data-hero-title]"
             );
+
 
         if (
             heroTitle &&
@@ -200,6 +220,7 @@ async function loadSiteSettings() {
                 "[data-hero-description]"
             );
 
+
         if (
             heroDescription &&
             settings.hero_description
@@ -208,6 +229,7 @@ async function loadSiteSettings() {
             heroDescription.textContent =
                 settings.hero_description;
         }
+
 
         console.log(
             "✅ Site ayarları yüklendi."
@@ -239,9 +261,11 @@ async function loadHeroBackground() {
             "[data-hero-media]"
         );
 
+
     if (!heroSection) {
         return;
     }
+
 
     let heroUrl =
         "assets/images/hero-bg.jpg";
@@ -258,6 +282,7 @@ async function loadHeroBackground() {
                 .from("site_settings")
                 .select("hero_bg_url")
                 .limit(1);
+
 
             if (
                 !error &&
@@ -320,15 +345,6 @@ async function loadHeroBackground() {
 
 /* ==========================================================
    5. KATEGORİ KAPAKLARI
-   ==========================================================
-
-   ÖNEMLİ:
-
-   index.html'deki gerçek yapı:
-
-   data-category-image="Halılar"
-
-   Bu yüzden burada aynı attribute kullanılıyor.
    ========================================================== */
 
 async function loadCategoryCovers() {
@@ -338,9 +354,11 @@ async function loadCategoryCovers() {
             "[data-category-image]"
         );
 
+
     if (!images.length) {
         return;
     }
+
 
     if (!window.surClient) {
 
@@ -395,11 +413,6 @@ async function loadCategoryCovers() {
         }
 
 
-        /*
-         * Büyük/küçük harf ve Türkçe karakter
-         * problemlerine karşı normalize ediyoruz.
-         */
-
         const normalizeCategory =
             value =>
                 String(value || "")
@@ -412,12 +425,6 @@ async function loadCategoryCovers() {
         const latestCovers = {};
 
 
-        /*
-         * Supabase zaten yeni -> eski sıralı.
-         * Böylece ilk bulunan kategori resmi
-         * o kategorinin en güncel resmi oluyor.
-         */
-
         data.forEach(item => {
 
             if (
@@ -426,6 +433,7 @@ async function loadCategoryCovers() {
             ) {
                 return;
             }
+
 
             const key =
                 normalizeCategory(
@@ -449,10 +457,12 @@ async function loadCategoryCovers() {
                     "data-category-image"
                 );
 
+
             const key =
                 normalizeCategory(
                     category
                 );
+
 
             const imageUrl =
                 latestCovers[key];
@@ -484,6 +494,7 @@ async function loadCategoryCovers() {
                     ".category-cover"
                 );
 
+
             if (cover) {
 
                 cover.classList.add(
@@ -498,7 +509,6 @@ async function loadCategoryCovers() {
             );
 
         });
-
 
     } catch (error) {
 
@@ -520,6 +530,7 @@ function createProductCard(product) {
         document.createElement(
             "article"
         );
+
 
     card.className =
         "product-card";
@@ -544,9 +555,19 @@ function createProductCard(product) {
             : "";
 
 
+    const category =
+        product.category ||
+        "";
+
+
     card.innerHTML = `
 
-        <div class="product-image">
+        <div
+            class="product-image"
+            role="button"
+            tabindex="0"
+            aria-label="${escapeHtml(productName)} detaylarını görüntüle"
+        >
 
             <img
                 src="${escapeHtml(imageUrl)}"
@@ -559,9 +580,14 @@ function createProductCard(product) {
 
         <div class="product-info">
 
-            <h3>
+            <h3
+                class="product-name-clickable"
+                role="button"
+                tabindex="0"
+            >
                 ${escapeHtml(productName)}
             </h3>
+
 
             ${
                 price
@@ -573,11 +599,12 @@ function createProductCard(product) {
                     : ""
             }
 
+
             ${
-                product.category
+                category
                     ? `
                         <div class="product-category">
-                            ${escapeHtml(product.category)}
+                            ${escapeHtml(category)}
                         </div>
                       `
                     : ""
@@ -587,27 +614,112 @@ function createProductCard(product) {
     `;
 
 
+    /* ======================================================
+       RESİM HATA KONTROLÜ
+       ====================================================== */
+
     const img =
         card.querySelector("img");
 
 
     if (img) {
 
-        img.onerror = function () {
+        img.onerror =
+            function () {
 
-            if (
-                this.dataset.fallbackApplied ===
-                "1"
-            ) {
-                return;
+                if (
+                    this.dataset.fallbackApplied ===
+                    "1"
+                ) {
+                    return;
+                }
+
+
+                this.dataset.fallbackApplied =
+                    "1";
+
+
+                this.src =
+                    "assets/images/logo.jpeg";
+            };
+    }
+
+
+    /* ======================================================
+       ÜRÜN DETAYI
+       ====================================================== */
+
+    function openDetails() {
+
+        openProductDetail(
+            product
+        );
+    }
+
+
+    const imageBox =
+        card.querySelector(
+            ".product-image"
+        );
+
+
+    const nameElement =
+        card.querySelector(
+            ".product-name-clickable"
+        );
+
+
+    if (imageBox) {
+
+        imageBox.addEventListener(
+            "click",
+            openDetails
+        );
+
+
+        imageBox.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Enter" ||
+                    event.key === " "
+                ) {
+
+                    event.preventDefault();
+
+                    openDetails();
+                }
+
             }
+        );
+    }
 
-            this.dataset.fallbackApplied =
-                "1";
 
-            this.src =
-                "assets/images/logo.jpeg";
-        };
+    if (nameElement) {
+
+        nameElement.addEventListener(
+            "click",
+            openDetails
+        );
+
+
+        nameElement.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Enter" ||
+                    event.key === " "
+                ) {
+
+                    event.preventDefault();
+
+                    openDetails();
+                }
+
+            }
+        );
     }
 
 
@@ -616,7 +728,757 @@ function createProductCard(product) {
 
 
 /* ==========================================================
-   7. ÖNE ÇIKAN ÜRÜNLER
+   7. ÜRÜN DETAY PENCERESİ
+   ========================================================== */
+
+function openProductDetail(product) {
+
+    /*
+     * Önceden açık bir detay varsa kaldır.
+     */
+
+    const oldModal =
+        document.getElementById(
+            "surProductDetailModal"
+        );
+
+
+    if (oldModal) {
+
+        oldModal.remove();
+    }
+
+
+    const imageUrl =
+        product.image_url ||
+        "assets/images/logo.jpeg";
+
+
+    const productName =
+        product.name ||
+        product.title ||
+        "Ürün";
+
+
+    const price =
+        product.price !== null &&
+        product.price !== undefined &&
+        product.price !== ""
+            ? `${product.price} TL`
+            : "";
+
+
+    const category =
+        product.category ||
+        "";
+
+
+    /*
+     * Admin panelindeki alanın adı:
+     * description
+     */
+
+    const description =
+        product.description ||
+        "";
+
+
+    /*
+     * Ürün ölçüsü varsa göster.
+     */
+
+    const size =
+        product.size ||
+        "";
+
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+
+    modal.id =
+        "surProductDetailModal";
+
+
+    modal.className =
+        "sur-product-detail-modal";
+
+
+    modal.innerHTML = `
+
+        <div
+            class="sur-product-detail-overlay"
+            data-product-close
+        ></div>
+
+
+        <div
+            class="sur-product-detail-box"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="surProductDetailTitle"
+        >
+
+            <button
+                type="button"
+                class="sur-product-detail-close"
+                aria-label="Kapat"
+                data-product-close
+            >
+                &times;
+            </button>
+
+
+            <div class="sur-product-detail-content">
+
+
+                <div class="sur-product-detail-image">
+
+                    <img
+                        src="${escapeHtml(imageUrl)}"
+                        alt="${escapeHtml(productName)}"
+                    >
+
+                </div>
+
+
+                <div class="sur-product-detail-info">
+
+
+                    ${
+                        category
+                            ? `
+                                <div class="sur-product-detail-category">
+                                    ${escapeHtml(category)}
+                                </div>
+                              `
+                            : ""
+                    }
+
+
+                    <h2 id="surProductDetailTitle">
+                        ${escapeHtml(productName)}
+                    </h2>
+
+
+                    ${
+                        price
+                            ? `
+                                <div class="sur-product-detail-price">
+                                    ${escapeHtml(price)}
+                                </div>
+                              `
+                            : ""
+                    }
+
+
+                    ${
+                        size
+                            ? `
+                                <div class="sur-product-detail-size">
+                                    <strong>Ölçü:</strong>
+                                    ${escapeHtml(size)}
+                                </div>
+                              `
+                            : ""
+                    }
+
+
+                    ${
+                        description
+                            ? `
+                                <div class="sur-product-detail-description-title">
+                                    Ürün Açıklaması
+                                </div>
+
+                                <div class="sur-product-detail-description">
+                                    ${escapeHtml(description)}
+                                </div>
+                              `
+                            : `
+                                <div class="sur-product-detail-description-title">
+                                    Ürün Açıklaması
+                                </div>
+
+                                <div class="sur-product-detail-description empty">
+                                    Bu ürün için henüz açıklama eklenmemiş.
+                                </div>
+                              `
+                    }
+
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+
+    document.body.appendChild(
+        modal
+    );
+
+
+    injectProductDetailStyles();
+
+
+    requestAnimationFrame(
+        function () {
+
+            modal.classList.add(
+                "is-open"
+            );
+
+        }
+    );
+
+
+    /*
+     * Kapatma butonları.
+     */
+
+    modal
+        .querySelectorAll(
+            "[data-product-close]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                closeProductDetail
+            );
+
+        });
+
+
+    /*
+     * ESC.
+     */
+
+    document.addEventListener(
+        "keydown",
+        handleProductDetailEscape
+    );
+
+
+    /*
+     * Sayfanın arkada kaymasını engelle.
+     */
+
+    document.body.style.overflow =
+        "hidden";
+}
+
+
+/* ==========================================================
+   8. ÜRÜN DETAY KAPATMA
+   ========================================================== */
+
+function closeProductDetail() {
+
+    const modal =
+        document.getElementById(
+            "surProductDetailModal"
+        );
+
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.remove(
+        "is-open"
+    );
+
+
+    setTimeout(
+        function () {
+
+            if (
+                modal &&
+                modal.parentNode
+            ) {
+
+                modal.remove();
+            }
+
+        },
+        200
+    );
+
+
+    document.body.style.overflow =
+        "";
+
+
+    document.removeEventListener(
+        "keydown",
+        handleProductDetailEscape
+    );
+}
+
+
+function handleProductDetailEscape(
+    event
+) {
+
+    if (
+        event.key === "Escape"
+    ) {
+
+        closeProductDetail();
+    }
+}
+
+
+/* ==========================================================
+   9. ÜRÜN DETAY VE ÜRÜN RESİM STİLLERİ
+   ========================================================== */
+
+function injectProductDetailStyles() {
+
+    if (
+        document.getElementById(
+            "surProductDetailStyles"
+        )
+    ) {
+
+        return;
+    }
+
+
+    const style =
+        document.createElement(
+            "style"
+        );
+
+
+    style.id =
+        "surProductDetailStyles";
+
+
+    style.textContent = `
+
+        /* ==================================================
+           ÜRÜN KARTI
+           ================================================== */
+
+        .product-image {
+
+            width: 100%;
+            height: 240px;
+
+            overflow: hidden;
+
+            cursor: pointer;
+
+            position: relative;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #f7f7f7;
+
+        }
+
+
+        .product-image img {
+
+            width: 100%;
+            height: 100%;
+
+            object-fit: contain;
+
+            display: block;
+
+            transition:
+                transform 0.25s ease;
+
+        }
+
+
+        .product-image:hover img {
+
+            transform:
+                scale(1.03);
+
+        }
+
+
+        .product-name-clickable {
+
+            cursor: pointer;
+
+            transition:
+                opacity 0.2s ease;
+
+        }
+
+
+        .product-name-clickable:hover {
+
+            opacity: 0.7;
+
+        }
+
+
+        /* ==================================================
+           ÜRÜN DETAY MODALI
+           ================================================== */
+
+        .sur-product-detail-modal {
+
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 1000000;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 20px;
+
+            opacity: 0;
+
+            visibility: hidden;
+
+            transition:
+                opacity 0.2s ease,
+                visibility 0.2s ease;
+
+        }
+
+
+        .sur-product-detail-modal.is-open {
+
+            opacity: 1;
+
+            visibility: visible;
+
+        }
+
+
+        .sur-product-detail-overlay {
+
+            position: absolute;
+
+            inset: 0;
+
+            background:
+                rgba(0, 0, 0, 0.72);
+
+            cursor: pointer;
+
+        }
+
+
+        .sur-product-detail-box {
+
+            position: relative;
+
+            z-index: 2;
+
+            width:
+                min(950px, 100%);
+
+            max-height: 90vh;
+
+            overflow-y: auto;
+
+            background: #ffffff;
+
+            border-radius: 16px;
+
+            box-shadow:
+                0 20px 60px
+                rgba(0, 0, 0, 0.30);
+
+            transform:
+                translateY(15px);
+
+            transition:
+                transform 0.2s ease;
+
+        }
+
+
+        .sur-product-detail-modal.is-open
+        .sur-product-detail-box {
+
+            transform:
+                translateY(0);
+
+        }
+
+
+        .sur-product-detail-close {
+
+            position: absolute;
+
+            top: 12px;
+            right: 15px;
+
+            z-index: 5;
+
+            width: 40px;
+            height: 40px;
+
+            border: none;
+
+            border-radius: 50%;
+
+            background:
+                rgba(0, 0, 0, 0.65);
+
+            color: #ffffff;
+
+            font-size: 28px;
+
+            line-height: 1;
+
+            cursor: pointer;
+
+        }
+
+
+        .sur-product-detail-close:hover {
+
+            background:
+                rgba(0, 0, 0, 0.85);
+
+        }
+
+
+        .sur-product-detail-content {
+
+            display: grid;
+
+            grid-template-columns:
+                minmax(300px, 1fr)
+                minmax(300px, 1fr);
+
+            gap: 30px;
+
+            padding: 30px;
+
+        }
+
+
+        .sur-product-detail-image {
+
+            width: 100%;
+
+            min-height: 420px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background:
+                #f5f5f5;
+
+            border-radius: 12px;
+
+            overflow: hidden;
+
+        }
+
+
+        .sur-product-detail-image img {
+
+            width: 100%;
+
+            height: 100%;
+
+            max-height: 600px;
+
+            object-fit: contain;
+
+            display: block;
+
+        }
+
+
+        .sur-product-detail-info {
+
+            padding:
+                20px 10px;
+
+        }
+
+
+        .sur-product-detail-category {
+
+            font-size: 14px;
+
+            color: #777;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .sur-product-detail-info h2 {
+
+            margin:
+                0 0 15px;
+
+            font-size: 30px;
+
+            line-height: 1.2;
+
+        }
+
+
+        .sur-product-detail-price {
+
+            font-size: 24px;
+
+            font-weight: 700;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .sur-product-detail-size {
+
+            margin-bottom: 20px;
+
+            font-size: 16px;
+
+        }
+
+
+        .sur-product-detail-description-title {
+
+            font-size: 18px;
+
+            font-weight: 700;
+
+            margin-bottom: 10px;
+
+            padding-bottom: 8px;
+
+            border-bottom:
+                1px solid #ddd;
+
+        }
+
+
+        .sur-product-detail-description {
+
+            font-size: 16px;
+
+            line-height: 1.7;
+
+            white-space: pre-wrap;
+
+            color: #333;
+
+        }
+
+
+        .sur-product-detail-description.empty {
+
+            color: #777;
+
+        }
+
+
+        /* ==================================================
+           MOBİL
+           ================================================== */
+
+        @media (max-width: 700px) {
+
+            .product-image {
+
+                height: 200px;
+
+            }
+
+
+            .sur-product-detail-modal {
+
+                padding: 10px;
+
+            }
+
+
+            .sur-product-detail-box {
+
+                max-height: 94vh;
+
+                border-radius: 12px;
+
+            }
+
+
+            .sur-product-detail-content {
+
+                grid-template-columns: 1fr;
+
+                gap: 15px;
+
+                padding: 20px;
+
+            }
+
+
+            .sur-product-detail-image {
+
+                min-height: 280px;
+
+                max-height: 350px;
+
+            }
+
+
+            .sur-product-detail-info {
+
+                padding: 5px;
+
+            }
+
+
+            .sur-product-detail-info h2 {
+
+                font-size: 24px;
+
+            }
+
+
+            .sur-product-detail-price {
+
+                font-size: 21px;
+
+            }
+
+        }
+
+    `;
+
+
+    document.head.appendChild(
+        style
+    );
+}
+
+
+/* ==========================================================
+   10. ÖNE ÇIKAN ÜRÜNLER
    ========================================================== */
 
 async function loadFeaturedProducts() {
@@ -626,9 +1488,11 @@ async function loadFeaturedProducts() {
             "#featuredProducts"
         );
 
+
     if (!container) {
         return;
     }
+
 
     if (!window.surClient) {
         return;
@@ -666,17 +1530,22 @@ async function loadFeaturedProducts() {
         }
 
 
-        container.innerHTML = "";
+        container.innerHTML =
+            "";
 
 
         if (!data?.length) {
 
             container.innerHTML = `
+
                 <div class="empty-products">
+
                     <p>
                         Henüz öne çıkan ürün bulunmuyor.
                     </p>
+
                 </div>
+
             `;
 
             return;
@@ -710,7 +1579,7 @@ async function loadFeaturedProducts() {
 
 
 /* ==========================================================
-   8. KATALOG ÜRÜNLERİ
+   11. KATALOG ÜRÜNLERİ
    ========================================================== */
 
 async function loadCatalogProducts(
@@ -722,6 +1591,7 @@ async function loadCatalogProducts(
             "#catalogProducts"
         );
 
+
     if (!container) {
         return;
     }
@@ -730,9 +1600,15 @@ async function loadCatalogProducts(
     if (!category) {
 
         container.innerHTML = `
+
             <div class="catalog-error">
-                <p>Kategori seçilmedi.</p>
+
+                <p>
+                    Kategori seçilmedi.
+                </p>
+
             </div>
+
         `;
 
         return;
@@ -742,11 +1618,15 @@ async function loadCatalogProducts(
     if (!window.surClient) {
 
         container.innerHTML = `
+
             <div class="catalog-error">
+
                 <p>
                     Ürünler şu anda yüklenemiyor.
                 </p>
+
             </div>
+
         `;
 
         return;
@@ -754,9 +1634,15 @@ async function loadCatalogProducts(
 
 
     container.innerHTML = `
+
         <div class="catalog-loading">
-            <p>Ürünler yükleniyor...</p>
+
+            <p>
+                Ürünler yükleniyor...
+            </p>
+
         </div>
+
     `;
 
 
@@ -787,35 +1673,46 @@ async function loadCatalogProducts(
                 error
             );
 
+
             container.innerHTML = `
+
                 <div class="catalog-error">
+
                     <p>
                         Ürünler yüklenirken hata oluştu.
                     </p>
+
                     <small>
                         ${escapeHtml(
                             error.message ||
                             "Supabase hatası"
                         )}
                     </small>
+
                 </div>
+
             `;
 
             return;
         }
 
 
-        container.innerHTML = "";
+        container.innerHTML =
+            "";
 
 
         if (!data?.length) {
 
             container.innerHTML = `
+
                 <div class="empty-products">
+
                     <p>
                         Bu kategoride henüz ürün bulunmuyor.
                     </p>
+
                 </div>
+
             `;
 
             return;
@@ -845,35 +1742,25 @@ async function loadCatalogProducts(
             error
         );
 
+
         container.innerHTML = `
+
             <div class="catalog-error">
+
                 <p>
-                    Ürünler yüklenirken beklenmeyen hata oluştu.
+                    Ürünler yüklenirken
+                    beklenmeyen hata oluştu.
                 </p>
+
             </div>
+
         `;
     }
 }
 
 
 /* ==========================================================
-   9. KATALOG FİLTRELERİ
-   ==========================================================
-
-   ÖNEMLİ:
-
-   Eskiden:
-       [data-category]
-
-   kullanılıyordu.
-
-   Bu hatalıydı çünkü index.html'deki kategori
-   kartlarında da data-category var.
-
-   Artık SADECE:
-       .category-filter
-
-   butonlarını seçiyoruz.
+   12. KATALOG FİLTRELERİ
    ========================================================== */
 
 function setupCatalogFilters() {
@@ -893,6 +1780,7 @@ function setupCatalogFilters() {
         document.querySelector(
             "#catalogTitle"
         );
+
 
     const description =
         document.querySelector(
@@ -916,6 +1804,7 @@ function setupCatalogFilters() {
 
         "Özel Kesim":
             "Özel ölçü ve kesim ürünlerimizi keşfedin."
+
     };
 
 
@@ -926,7 +1815,10 @@ function setupCatalogFilters() {
 
 
     const requestedCategory =
-        params.get("category");
+        (
+            params.get("category") ||
+            ""
+        ).trim();
 
 
     let activeFilter =
@@ -934,16 +1826,25 @@ function setupCatalogFilters() {
 
 
     /*
-     * URL'deki kategoriye göre buton bul.
+     * URL'deki kategori.
      */
 
     if (requestedCategory) {
 
         filters.forEach(filter => {
 
+            const filterCategory =
+                (
+                    filter.dataset.category ||
+                    ""
+                ).trim();
+
+
             if (
-                filter.dataset.category ===
+                filterCategory
+                    .toLocaleLowerCase("tr-TR") ===
                 requestedCategory
+                    .toLocaleLowerCase("tr-TR")
             ) {
 
                 activeFilter =
@@ -955,7 +1856,7 @@ function setupCatalogFilters() {
 
 
     /*
-     * URL geçersizse ilk kategori.
+     * Geçersiz URL ise ilk kategori.
      */
 
     if (!activeFilter) {
@@ -981,16 +1882,19 @@ function setupCatalogFilters() {
                 "active"
             );
 
+
             item.setAttribute(
                 "aria-selected",
                 "false"
             );
+
         });
 
 
         filter.classList.add(
             "active"
         );
+
 
         filter.setAttribute(
             "aria-selected",
@@ -1002,20 +1906,12 @@ function setupCatalogFilters() {
             filter.dataset.category;
 
 
-        /*
-         * Başlık
-         */
-
         if (title) {
 
             title.textContent =
                 category;
         }
 
-
-        /*
-         * Açıklama
-         */
 
         if (description) {
 
@@ -1025,16 +1921,13 @@ function setupCatalogFilters() {
         }
 
 
-        /*
-         * URL
-         */
-
         if (updateUrl) {
 
             try {
 
                 const newUrl =
                     `${window.location.pathname}?category=${encodeURIComponent(category)}`;
+
 
                 window.history.replaceState(
                     {},
@@ -1052,19 +1945,11 @@ function setupCatalogFilters() {
         }
 
 
-        /*
-         * Ürünler
-         */
-
         loadCatalogProducts(
             category
         );
     }
 
-
-    /*
-     * Buton tıklamaları
-     */
 
     filters.forEach(filter => {
 
@@ -1076,15 +1961,12 @@ function setupCatalogFilters() {
                     this,
                     true
                 );
+
             }
         );
 
     });
 
-
-    /*
-     * İlk yükleme
-     */
 
     activateFilter(
         activeFilter,
@@ -1099,7 +1981,7 @@ function setupCatalogFilters() {
 
 
 /* ==========================================================
-   10. ASİSTAN ÜRÜNLERİ
+   13. ASİSTAN ÜRÜNLERİ
    ========================================================== */
 
 let assistantProducts = [];
@@ -1164,7 +2046,7 @@ async function loadAssistantProducts() {
 
 
 /* ==========================================================
-   11. KATEGORİ ALGILAMA
+   14. KATEGORİ ALGILAMA
    ========================================================== */
 
 function detectCategoryIntent(
@@ -1181,6 +2063,7 @@ function detectCategoryIntent(
     if (
         text.includes("sisal")
     ) {
+
         return "Sisal";
     }
 
@@ -1188,6 +2071,7 @@ function detectCategoryIntent(
     if (
         text.includes("kaymaz")
     ) {
+
         return "Kaymaz";
     }
 
@@ -1198,6 +2082,7 @@ function detectCategoryIntent(
         text.includes("özel kesim") ||
         text.includes("özel kes")
     ) {
+
         return "Özel Kesim";
     }
 
@@ -1205,6 +2090,7 @@ function detectCategoryIntent(
     if (
         text.includes("klasik yolluk")
     ) {
+
         return "Klasik Yolluklar";
     }
 
@@ -1212,6 +2098,7 @@ function detectCategoryIntent(
     if (
         text.includes("yolluk")
     ) {
+
         return "Klasik Yolluklar";
     }
 
@@ -1221,6 +2108,7 @@ function detectCategoryIntent(
         text.includes("hali") ||
         text.includes("fiyat")
     ) {
+
         return "Halılar";
     }
 
@@ -1230,7 +2118,7 @@ function detectCategoryIntent(
 
 
 /* ==========================================================
-   12. ASİSTAN İÇİN ÜRÜN ARAMA
+   15. ASİSTAN ÜRÜN ARAMA
    ========================================================== */
 
 function findAssistantProducts(
@@ -1301,6 +2189,7 @@ function findAssistantProducts(
                         token
                     )
                 ) {
+
                     score++;
                 }
 
@@ -1333,18 +2222,7 @@ function findAssistantProducts(
 
 
 /* ==========================================================
-   13. AI ASİSTAN
-   ==========================================================
-
-   BURADA ÖNEMLİ BİR NOKTA VAR:
-
-   Frontend'e Groq/Replicate SECRET KEY koymuyoruz.
-
-   Önce Supabase Edge Function deniyoruz.
-
-   Fonksiyon adı mevcut sistemde:
-       groq-chat
-
+   16. AI ASİSTAN
    ========================================================== */
 
 async function askGroqAI(
@@ -1364,11 +2242,6 @@ async function askGroqAI(
     }
 
 
-    /*
-     * Ürün hafızası henüz gelmediyse
-     * beklemeden devam ediyoruz.
-     */
-
     const products =
         findAssistantProducts(
             message
@@ -1378,7 +2251,8 @@ async function askGroqAI(
     const productContext =
         products.map(product => ({
 
-            id: product.id,
+            id:
+                product.id,
 
             name:
                 product.name ||
@@ -1449,6 +2323,7 @@ async function askGroqAI(
             error
         );
 
+
         throw new Error(
             "Asistana ulaşılamadı. Lütfen tekrar deneyin."
         );
@@ -1468,17 +2343,13 @@ async function askGroqAI(
             error
         );
 
+
         throw new Error(
             error.message ||
             "Asistan şu anda cevap veremiyor."
         );
     }
 
-
-    /*
-     * Edge Function farklı cevap formatları
-     * döndürürse hepsini destekle.
-     */
 
     const answer =
 
@@ -1500,6 +2371,7 @@ async function askGroqAI(
             data
         );
 
+
         throw new Error(
             "Asistandan boş cevap geldi."
         );
@@ -1513,7 +2385,7 @@ async function askGroqAI(
 
 
 /* ==========================================================
-   14. ASİSTAN MESAJ GÖSTERME
+   17. ASİSTAN MESAJ GÖSTERME
    ========================================================== */
 
 function addAssistantMessage(
@@ -1525,6 +2397,7 @@ function addAssistantMessage(
         document.querySelector(
             "#aiChatMessages"
         );
+
 
     if (!messages) {
         return;
@@ -1546,11 +2419,14 @@ function addAssistantMessage(
     div.style.padding =
         "8px 12px";
 
+
     div.style.borderRadius =
         "8px";
 
+
     div.style.marginBottom =
         "8px";
+
 
     div.style.whiteSpace =
         "pre-wrap";
@@ -1592,7 +2468,7 @@ function addAssistantMessage(
 
 
 /* ==========================================================
-   15. ASİSTAN CHAT
+   18. ASİSTAN CHAT
    ========================================================== */
 
 function setupAIChat() {
@@ -1602,10 +2478,12 @@ function setupAIChat() {
             "#aiChatInput"
         );
 
+
     const sendButton =
         document.querySelector(
             "#aiChatSend"
         );
+
 
     const messages =
         document.querySelector(
@@ -1627,14 +2505,11 @@ function setupAIChat() {
     }
 
 
-    /*
-     * Aynı listener'ın iki kez eklenmesini önle.
-     */
-
     if (
         sendButton.dataset.chatReady ===
         "1"
     ) {
+
         return;
     }
 
@@ -1666,7 +2541,8 @@ function setupAIChat() {
         sending = true;
 
 
-        input.value = "";
+        input.value =
+            "";
 
 
         addAssistantMessage(
@@ -1684,6 +2560,7 @@ function setupAIChat() {
 
         sendButton.disabled =
             true;
+
 
         sendButton.style.opacity =
             "0.6";
@@ -1718,6 +2595,7 @@ function setupAIChat() {
 
 
             if (loading) {
+
                 loading.remove();
             }
 
@@ -1731,13 +2609,17 @@ function setupAIChat() {
 
         } finally {
 
-            sending = false;
+            sending =
+                false;
+
 
             sendButton.disabled =
                 false;
 
+
             sendButton.style.opacity =
                 "1";
+
 
             input.focus();
         }
@@ -1769,13 +2651,14 @@ function setupAIChat() {
 
 
     /*
-     * Resim yükleme butonu
+     * RESİM YÜKLEME BUTONU
      */
 
     const uploadButton =
         document.querySelector(
             "#chat-upload-btn"
         );
+
 
     const fileInput =
         document.querySelector(
@@ -1793,6 +2676,7 @@ function setupAIChat() {
             function () {
 
                 fileInput.click();
+
             }
         );
 
@@ -1816,7 +2700,8 @@ function setupAIChat() {
                 );
 
 
-                this.value = "";
+                this.value =
+                    "";
             }
         );
     }
@@ -1829,7 +2714,7 @@ function setupAIChat() {
 
 
 /* ==========================================================
-   16. TRY-ON KREDİ
+   19. TRY-ON KREDİ
    ========================================================== */
 
 function getTryOnDeviceId() {
@@ -1967,7 +2852,11 @@ async function syncTryOnCredits() {
             .maybeSingle();
 
 
-        if (error || !data) {
+        if (
+            error ||
+            !data
+        ) {
+
             return;
         }
 
@@ -2040,7 +2929,7 @@ async function syncTryOnCredits() {
 
 
 /* ==========================================================
-   17. VIRTUAL TRY-ON
+   20. VIRTUAL TRY-ON
    ========================================================== */
 
 async function invokeVirtualTryOn(
@@ -2084,6 +2973,7 @@ async function invokeVirtualTryOn(
 
         product_id:
             product.id || null
+
     };
 
 
@@ -2110,6 +3000,7 @@ async function invokeVirtualTryOn(
             error
         );
 
+
         throw new Error(
             error.message ||
             "Sanal giydirme başarısız."
@@ -2126,6 +3017,7 @@ async function invokeVirtualTryOn(
             data
         );
 
+
         throw new Error(
             "Sanal giydirme sonucu alınamadı."
         );
@@ -2137,7 +3029,7 @@ async function invokeVirtualTryOn(
 
 
 /* ==========================================================
-   18. ODA ANALİZİ
+   21. ODA ANALİZİ
    ========================================================== */
 
 async function analyzeRoom(
@@ -2173,17 +3065,19 @@ async function analyzeRoom(
 
 
                 reader.onload =
-                    () => resolve(
-                        reader.result
-                    );
+                    () =>
+                        resolve(
+                            reader.result
+                        );
 
 
                 reader.onerror =
-                    () => reject(
-                        new Error(
-                            "Görsel okunamadı."
-                        )
-                    );
+                    () =>
+                        reject(
+                            new Error(
+                                "Görsel okunamadı."
+                            )
+                        );
 
 
                 reader.readAsDataURL(
@@ -2200,7 +3094,8 @@ async function analyzeRoom(
         "analyze-room",
         {
             body: {
-                image: imageData
+                image:
+                    imageData
             }
         }
     );
@@ -2212,6 +3107,7 @@ async function analyzeRoom(
             "❌ Oda analizi:",
             error
         );
+
 
         throw new Error(
             error.message ||
@@ -2225,54 +3121,75 @@ async function analyzeRoom(
 
 
 /* ==========================================================
-   19. GLOBAL FONKSİYONLAR
+   22. GLOBAL FONKSİYONLAR
    ========================================================== */
 
 window.loadSiteSettings =
     loadSiteSettings;
 
+
 window.loadHeroBackground =
     loadHeroBackground;
+
 
 window.loadCategoryCovers =
     loadCategoryCovers;
 
+
 window.loadFeaturedProducts =
     loadFeaturedProducts;
+
 
 window.loadCatalogProducts =
     loadCatalogProducts;
 
+
 window.setupCatalogFilters =
     setupCatalogFilters;
+
 
 window.loadAssistantProducts =
     loadAssistantProducts;
 
+
 window.askGroqAI =
     askGroqAI;
+
 
 window.setupAIChat =
     setupAIChat;
 
+
 window.invokeVirtualTryOn =
     invokeVirtualTryOn;
+
 
 window.analyzeRoom =
     analyzeRoom;
 
+
 window.getTryOnCredits =
     getTryOnCredits;
 
+
 window.consumeTryOnCredit =
     consumeTryOnCredit;
+
 
 window.syncTryOnCredits =
     syncTryOnCredits;
 
 
+window.openProductDetail =
+    openProductDetail;
+
+
+window.closeProductDetail =
+    closeProductDetail;
+
+
 /* ==========================================================
-   20. ANA BAŞLATMA
+   23. ANA BAŞLATMA
    ========================================================== */
 
 async function initializeSurHaliSite() {
@@ -2317,7 +3234,7 @@ async function initializeSurHaliSite() {
     /*
      * Katalog.
      *
-     * SADECE .category-filter kullanır.
+     * Sadece .category-filter kullanır.
      * Ana sayfadaki kategori kartlarına dokunmaz.
      */
 
@@ -2325,19 +3242,28 @@ async function initializeSurHaliSite() {
 
 
     /*
-     * AI
+     * AI.
      */
 
     setupAIChat();
+
+
+    /*
+     * Ürün detay stillerini hazırla.
+     */
+
+    injectProductDetailStyles();
 
 
     console.log(
         "=========================================="
     );
 
+
     console.log(
         "✅ SUR HALI SİTE BAŞLATMA TAMAMLANDI"
     );
+
 
     console.log(
         "=========================================="
@@ -2346,7 +3272,7 @@ async function initializeSurHaliSite() {
 
 
 /* ==========================================================
-   21. DOM READY
+   24. DOM READY
    ========================================================== */
 
 if (
@@ -2363,3 +3289,4 @@ if (
 
     initializeSurHaliSite();
 }
+```
