@@ -1,4 +1,3 @@
-```javascript
 /* ==========================================================
    SUR HALI İZNİK
    ANA SITE JAVASCRIPT
@@ -3289,4 +3288,4 @@ if (
 
     initializeSurHaliSite();
 }
-```
+
