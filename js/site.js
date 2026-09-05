@@ -377,4 +377,41 @@ function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
                 reject(new Error("Görsel boyutlandırılamadı."));
             };
             image.onload = () => {
-                console.log("Görsel boyutları:", image.naturalWidth, "x", image.naturalHeight
+                console.log("Görsel boyutları:", image.naturalWidth, "x", image.naturalHeight);
+                let width = image.naturalWidth;
+                let height = image.naturalHeight;
+
+                if (width > height) {
+                    if (width > maxSize) {
+                        height = Math.round((height * maxSize) / width);
+                        width = maxSize;
+                    }
+                } else {
+                    if (height > maxSize) {
+                        width = Math.round((width * maxSize) / height);
+                        height = maxSize;
+                    }
+                }
+
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, width);
+                canvas.height = Math.max(1, height);
+
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return reject(new Error("Canvas context alınamadı."));
+
+                ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL("image/jpeg", quality));
+            };
+            image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Otomatik Yükleme Başlatıcı
+document.addEventListener("DOMContentLoaded", () => {
+    loadSiteSettings();
+    assistantProductsReady = loadAssistantProducts();
+    syncTryOnCredits();
+});
