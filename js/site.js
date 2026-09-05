@@ -557,7 +557,6 @@ async function loadCategoryCovers() {
             image.closest(".category-cover")?.classList.add("has-image");
         }
     });
-
 }
 
 async function loadHeroBackground() {
@@ -739,13 +738,15 @@ async function askGroqAI(userMessage) {
         });
 
         if (!response.ok) {
-            throw new Error(`Groq API Hatası: ${response.status}`);
+            const errText = await response.text();
+            console.error("Groq API hatası:", response.status, errText);
+            return "Şu anda yapay zeka asistanımız yanıt veremiyor. Lütfen WhatsApp hattımız üzerinden bizimle iletişime geçin.";
         }
 
         const data = await response.json();
-        return data.choices?.[0]?.message?.content || "Soru anlaşılamadı, lütfen tekrar deneyin.";
-    } catch (error) {
-        console.error("Groq AI yanıt hatası:", error);
-        return "Üzgünüm, şu anda AI asistanımıza ulaşılamıyor. Lütfen WhatsApp üzerinden iletişime geçin.";
+        return data?.choices?.[0]?.message?.content?.trim() || "Yanıt oluşturulamadı.";
+    } catch (err) {
+        console.error("Groq AI bağlantı hatası:", err);
+        return "Bağlantı sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
     }
 }
