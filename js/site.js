@@ -1,6 +1,5 @@
-/* SUR HALI - HATA KORUMALI KATALOG VE RESIM KODU */
+/* SUR HALI - KESİN GÖRSEL VE KATEGORİ EŞLEŞTİRME KODU */
 
-// 1. DEĞİŞKEN ÇAKIŞMA KORUMASI (Uncaught SyntaxError Engelleyici)
 if (typeof SUR_SUPABASE_URL === 'undefined') {
     var SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
 }
@@ -48,7 +47,7 @@ async function loadSiteSettings() {
     }
 }
 
-// 2. KATALOG KAPAK / BANNER RESMİ YÜKLEME
+// 1. KATALOG KAPAK RESMİ YÜKLEME
 async function loadCategoryBanner(category) {
     var bannerContainer = document.getElementById("bannerImageContainer");
     var bannerImg = document.getElementById("categoryBannerImg");
@@ -60,13 +59,21 @@ async function loadCategoryBanner(category) {
 
     try {
         var res = await window.surClient
-            .from("categories")
+            .from("category_images")
             .select("*")
-            .ilike("name", category)
+            .ilike("category", category)
             .maybeSingle();
 
+        if (!res.data) {
+            res = await window.surClient
+                .from("category_covers")
+                .select("*")
+                .ilike("category", category)
+                .maybeSingle();
+        }
+
         var data = res.data;
-        var bannerUrl = data ? (data.banner_url || data.image_url || data.cover_image || data.image) : null;
+        var bannerUrl = data ? (data.image_url || data.image_path) : null;
 
         if (bannerUrl) {
             bannerImg.src = bannerUrl;
@@ -79,7 +86,7 @@ async function loadCategoryBanner(category) {
     }
 }
 
-// 3. KATALOG ÜRÜN VE RESİMLERİNİ GETİRME
+// 2. KATEGORİ VE ÜRÜN FİLTRELEME
 async function loadProducts(category) {
     if (!category) category = "Tümü";
     var container = document.getElementById("catalog-products-container");
@@ -93,14 +100,8 @@ async function loadProducts(category) {
     }
 
     try {
-        var query = window.surClient.from("products").select("*");
-
-        if (category !== "Tümü") {
-            query = query.eq("category", category);
-        }
-
-        var res = await query;
-        var products = res.data;
+        var res = await window.surClient.from("products").select("*");
+        var allProducts = res.data;
         var error = res.error;
 
         if (error) {
@@ -109,12 +110,27 @@ async function loadProducts(category) {
             return;
         }
 
-        if (!products || products.length === 0) {
+        if (!allProducts || allProducts.length === 0) {
+            container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px 0;">Veritabanında ürün bulunamadı.</p>';
+            return;
+        }
+
+        // Esnek Kategori Filtreleme
+        var filteredProducts = allProducts;
+        if (category !== "Tümü") {
+            var targetCat = category.toLocaleLowerCase('tr-TR').trim();
+            filteredProducts = allProducts.filter(function (p) {
+                var pCat = (p.category || "").toLocaleLowerCase('tr-TR').trim();
+                return pCat === targetCat || pCat.includes(targetCat) || targetCat.includes(pCat);
+            });
+        }
+
+        if (filteredProducts.length === 0) {
             container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px 0;">"' + escapeHTML(category) + '" kategorisinde ürün bulunamadı.</p>';
             return;
         }
 
-        renderProducts(products, container);
+        renderProducts(filteredProducts, container);
 
     } catch (err) {
         console.error("Hata:", err);
@@ -127,7 +143,8 @@ function renderProducts(products, container) {
 
     products.forEach(function (product) {
         var title = product.title || product.name || product.product_name || "Halı Modeli";
-        var image = product.image_url || product.image || product.photo || product.img_url || "assets/images/logo.jpeg";
+        // Doğrudan Supabase'deki image_url sütununu alır
+        var image = product.image_url || product.image_path || product.image || "assets/images/logo.jpeg";
         var price = product.price ? product.price + " TL" : "Fiyat Sorunuz";
         var category = product.category || "";
 
@@ -175,7 +192,7 @@ function setupFilterButtons(activeCategory) {
 function openProductModal(product) {
     currentSelectedProduct = product;
     
-    var image = product.image_url || product.image || product.photo || product.img_url || 'assets/images/logo.jpeg';
+    var image = product.image_url || product.image_path || product.image || 'assets/images/logo.jpeg';
     var title = product.title || product.name || product.product_name || "Halı Modeli";
 
     var imgEl = document.getElementById("modalProductImg");
@@ -217,7 +234,7 @@ function addToCart(product) {
     if (!product) return;
     var cart = getCart();
     var title = product.title || product.name || "Halı Modeli";
-    var image = product.image_url || product.image || product.photo || "";
+    var image = product.image_url || product.image_path || "";
 
     cart.push({
         id: product.id,
