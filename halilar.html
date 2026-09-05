@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
 
     <meta charset="UTF-8">
@@ -13,7 +14,7 @@
 
     <meta
         name="description"
-        content="Sur Halı İznik halı koleksiyonu."
+        content="Sur Halı İznik halı koleksiyonlarını keşfedin."
     >
 
     <link
@@ -26,11 +27,14 @@
 
 <body>
 
-    <!-- HEADER -->
+
+    <!-- ======================================================
+         HEADER
+         ====================================================== -->
 
     <header class="site-header">
 
-        <div class="header-container">
+        <div class="container header-inner">
 
             <a
                 href="index.html"
@@ -40,39 +44,27 @@
                 <img
                     src="assets/images/logo.jpeg"
                     alt="Sur Halı İznik"
-                    class="site-logo logo-img"
+                    class="site-logo"
+                    data-site-logo
                 >
 
             </a>
 
 
-            <nav class="main-nav">
+            <nav class="main-navigation">
 
-                <a
-                    href="index.html"
-                    class="nav-link"
-                >
+                <a href="index.html">
                     Ana Sayfa
                 </a>
 
                 <a
                     href="halilar.html"
-                    class="nav-link active"
+                    class="active"
                 >
                     Halılar
                 </a>
 
-                <a
-                    href="index.html#kategoriler"
-                    class="nav-link"
-                >
-                    Koleksiyonlar
-                </a>
-
-                <a
-                    href="index.html#iletisim"
-                    class="nav-link"
-                >
+                <a href="index.html#iletisim">
                     İletişim
                 </a>
 
@@ -83,17 +75,17 @@
     </header>
 
 
-    <!-- PAGE -->
 
-    <main>
+    <!-- ======================================================
+         KATALOG
+         ====================================================== -->
+
+    <main class="catalog-page">
+
 
         <section class="catalog-header">
 
-            <div class="section-heading">
-
-                <span>
-                    SUR HALI İZNİK
-                </span>
+            <div class="container">
 
                 <h1 id="catalogTitle">
                     Halılar
@@ -108,131 +100,143 @@
         </section>
 
 
-        <!-- CATEGORY FILTER -->
 
-        <section class="catalog-section">
+        <!-- ==================================================
+             KATEGORİ FİLTRELERİ
+             ================================================== -->
 
-            <div
-                id="categoryFilters"
-                class="category-filters"
-            >
+        <section class="catalog-filters-section">
 
-                <button
-                    type="button"
-                    class="category-filter active"
-                    data-category="Halılar"
+            <div class="container">
+
+                <div
+                    class="category-filters"
+                    role="tablist"
+                    aria-label="Halı kategorileri"
                 >
-                    Halılar
-                </button>
-
-                <button
-                    type="button"
-                    class="category-filter"
-                    data-category="Klasik Yolluklar"
-                >
-                    Klasik Yolluklar
-                </button>
-
-                <button
-                    type="button"
-                    class="category-filter"
-                    data-category="Sisal"
-                >
-                    Sisal
-                </button>
-
-                <button
-                    type="button"
-                    class="category-filter"
-                    data-category="Kaymaz"
-                >
-                    Kaymaz
-                </button>
-
-                <button
-                    type="button"
-                    class="category-filter"
-                    data-category="Özel Kesim"
-                >
-                    Özel Kesim
-                </button>
-
-            </div>
 
 
-            <!-- PRODUCT GRID -->
+                    <button
+                        type="button"
+                        class="category-filter"
+                        data-category="Halılar"
+                    >
+                        Halılar
+                    </button>
 
-            <div
-                id="catalogProducts"
-                class="product-grid catalog-grid"
-            >
 
-                <div class="loading-state">
-                    Ürünler yükleniyor...
+                    <button
+                        type="button"
+                        class="category-filter"
+                        data-category="Klasik Yolluklar"
+                    >
+                        Klasik Yolluklar
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="category-filter"
+                        data-category="Sisal"
+                    >
+                        Sisal
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="category-filter"
+                        data-category="Kaymaz"
+                    >
+                        Kaymaz
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="category-filter"
+                        data-category="Özel Kesim"
+                    >
+                        Özel Kesim
+                    </button>
+
+
                 </div>
 
             </div>
 
         </section>
 
+
+
+        <!-- ==================================================
+             ÜRÜNLER
+             ================================================== -->
+
+        <section class="catalog-products-section">
+
+            <div class="container">
+
+                <div
+                    id="catalogProducts"
+                    class="products-grid"
+                >
+
+                    <div class="catalog-loading">
+
+                        <p>
+                            Ürünler yükleniyor...
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
     </main>
 
 
-    <!-- FOOTER -->
+
+    <!-- ======================================================
+         FOOTER
+         ====================================================== -->
 
     <footer class="site-footer">
 
-        <div class="footer-container">
+        <div class="container">
 
-            <div>
-
-                <strong>
-                    Sur Halı İznik
-                </strong>
-
-                <p>
-                    Halı ve yolluk seçenekleri.
-                </p>
-
-            </div>
-
-            <div>
-
-                <a href="index.html">
-                    Ana Sayfa
-                </a>
-
-                <a href="halilar.html">
-                    Halılar
-                </a>
-
-                <a href="index.html#iletisim">
-                    İletişim
-                </a>
-
-            </div>
-
-        </div>
-
-
-        <div class="footer-bottom">
-
-            © 2026 Sur Halı İznik
+            <p>
+                © 2026 Sur Halı İznik. Tüm hakları saklıdır.
+            </p>
 
         </div>
 
     </footer>
 
 
-    <!-- SCRIPTS -->
+
+    <!-- ======================================================
+         SUPABASE CDN
+         ====================================================== -->
 
     <script
         src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
     ></script>
 
-    <script src="js/supabase.js"></script>
 
-  <script src="js/site.js?v=999"></script>
+    <!-- ======================================================
+         TEK ANA JAVASCRIPT
+         ====================================================== -->
+
+    <script
+        src="js/site.js?v=1000"
+    ></script>
+
 
 </body>
+
 </html>
