@@ -250,15 +250,11 @@ async function loadSiteSettings() {
 
 async function loadHeroBackground() {
 
-    const heroSection =
-        document.querySelector(
-            ".hero-section"
-        );
+    constheroSection.style.backgroundImage =
+    'url("' + heroUrl + '")';
 
-    const heroMedia =
-        document.querySelector(
-            "[data-hero-media]"
-        );
+    const heroMedia.style.backgroundImage =
+    'url("' + heroUrl + '")';
 
 
     if (!heroSection) {
