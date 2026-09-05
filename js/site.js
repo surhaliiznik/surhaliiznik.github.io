@@ -72,6 +72,10 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         return product.title || product.name || "Halı Model";
     }
 
+    function getProductImage(product) {
+        return product.image_url || product.image || product.img || "https://via.placeholder.com/300x300?text=G%C3%B6rsel+Yok";
+    }
+
     function productLink(product) {
         const category = product.category || "Halılar";
         const identifier = product.slug || product.id;
@@ -178,46 +182,6 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
     }
 
-    function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onerror = () => reject(reader.error || new Error("Görsel okunamadı."));
-            reader.onload = () => {
-                const image = new Image();
-                image.onerror = () => reject(new Error("Görsel yüklenemedi."));
-                image.onload = () => {
-                    let width = image.width;
-                    let height = image.height;
-
-                    if (width > height) {
-                        if (width > maxSize) {
-                            height = Math.round((height * maxSize) / width);
-                            width = maxSize;
-                        }
-                    } else {
-                        if (height > maxSize) {
-                            width = Math.round((width * maxSize) / height);
-                            height = maxSize;
-                        }
-                    }
-
-                    const canvas = document.createElement("canvas");
-                    canvas.width = Math.max(1, width);
-                    canvas.height = Math.max(1, height);
-
-                    const ctx = canvas.getContext("2d");
-                    if (!ctx) return reject(new Error("Canvas oluşturulamadı."));
-
-                    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL("image/jpeg", quality));
-                };
-                image.src = reader.result;
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    /* RESİM VE KAPAK YÜKLEME FONKSİYONLARI */
     async function loadHeroBackground() {
         const heroSection = document.querySelector('.hero, .hero-section');
         if (!heroSection || !window.surClient) return;
@@ -228,7 +192,6 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
     }
 
-    // 1. Kapak resimlerini 'category_images' tablosundan çeken fonksiyon
     async function loadCategoryCovers() {
         if (!window.surClient) return;
         const { data: categories } = await window.surClient.from("category_images").select("*");
@@ -236,11 +199,14 @@ if (!window.__SUR_SITE_JS_LOADED__) {
 
         categories.forEach(cat => {
             const el = document.querySelector(`[data-category-cover="${cat.name}"], [data-category="${cat.name}"]`);
-            if (el && cat.image_url) {
-                if (el.tagName === 'IMG') {
-                    el.src = cat.image_url;
-                } else {
-                    el.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('${cat.image_url}')`;
+            if (el) {
+                const imgUrl = cat.image_url || cat.image || cat.url;
+                if (imgUrl) {
+                    if (el.tagName === 'IMG') {
+                        el.src = imgUrl;
+                    } else {
+                        el.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('${imgUrl}')`;
+                    }
                 }
             }
         });
@@ -261,15 +227,14 @@ if (!window.__SUR_SITE_JS_LOADED__) {
 
         container.innerHTML = products.map(product => `
             <div class="product-card">
-                <img src="${escapeHTML(product.image_url)}" alt="${escapeHTML(productTitle(product))}" loading="lazy">
+                <img src="${escapeHTML(getProductImage(product))}" alt="${escapeHTML(productTitle(product))}" loading="lazy">
                 <h3>${escapeHTML(productTitle(product))}</h3>
-                <a href="${productLink(product)}" class="btn-detail">İncele</a>
+                <button type="button" class="btn-detail" data-id="${product.id}">İncele & Detaylar</button>
             </div>
         `).join("");
     }
 
-    // 2. Tıklanınca Detay Gösteren Katalog Yükleyici
-    async function loadCatalogProducts(categoryName = "Halılar") {
+    async function loadCatalogProducts(categoryName = null) {
         const container = document.getElementById("catalog-products-container");
         if (!container) return;
 
@@ -279,7 +244,7 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
 
         let query = window.surClient.from("products").select("*").eq("is_active", true);
-        if (categoryName && categoryName !== "Tümü") {
+        if (categoryName && categoryName !== "Tümü" && categoryName !== "Halılar") {
             query = query.eq("category", categoryName);
         }
 
@@ -296,28 +261,19 @@ if (!window.__SUR_SITE_JS_LOADED__) {
             return;
         }
 
-        container.innerHTML = products.map(product => `
-            <div class="product-card" data-product-id="${product.slug || product.id}">
-                <img src="${escapeHTML(product.image_url)}" alt="${escapeHTML(productTitle(product))}" loading="lazy">
-                <h3>${escapeHTML(productTitle(product))}</h3>
-                <p class="category">${escapeHTML(product.category || '')}</p>
-                <button type="button" class="btn-detail" onclick="openProductModal('${product.id}')">İncele & Detaylar</button>
-            </div>
-        `).join("");
-
         window.currentCatalogProducts = products;
 
-        const requestedProduct = new URLSearchParams(window.location.search).get("product");
-        if (requestedProduct) {
-            const productCard = container.querySelector(`[data-product-id="${requestedProduct}"]`);
-            if (productCard) {
-                productCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                productCard.classList.add('highlighted-product');
-            }
-        }
+        container.innerHTML = products.map(product => `
+            <div class="product-card" data-product-id="${product.slug || product.id}">
+                <img src="${escapeHTML(getProductImage(product))}" alt="${escapeHTML(productTitle(product))}" loading="lazy">
+                <h3>${escapeHTML(productTitle(product))}</h3>
+                <p class="category">${escapeHTML(product.category || '')}</p>
+                <button type="button" class="btn-detail" data-id="${product.id}">İncele & Detaylar</button>
+            </div>
+        `).join("");
     }
 
-    // 3. Ürün Açıklamasını ve Detaylarını Gösteren Pencere (Modal) Fonksiyonları
+    // Modal Fonksiyonları ve Tıklama Dinleyicileri
     window.openProductModal = function(productId) {
         const product = (window.currentCatalogProducts || []).find(p => String(p.id) === String(productId));
         if (!product) return;
@@ -331,22 +287,31 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
 
         modal.innerHTML = `
-            <div class="modal-content">
-                <span class="close-modal" onclick="closeProductModal()">&times;</span>
+            <div class="modal-content" style="background:#fff; padding:20px; max-width:500px; margin:auto; border-radius:8px; position:relative;">
+                <span class="close-modal" onclick="closeProductModal()" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px;">&times;</span>
                 <div class="modal-body">
-                    <img src="${escapeHTML(product.image_url)}" alt="${escapeHTML(productTitle(product))}">
-                    <div class="modal-info">
+                    <img src="${escapeHTML(getProductImage(product))}" alt="${escapeHTML(productTitle(product))}" style="width:100%; height:auto; border-radius:6px;">
+                    <div class="modal-info" style="margin-top:15px;">
                         <h2>${escapeHTML(productTitle(product))}</h2>
-                        <p class="modal-category"><strong>Kategori:</strong> ${escapeHTML(product.category || '-')}</p>
-                        <p class="modal-size"><strong>Ölçü:</strong> ${escapeHTML(product.size || 'Belirtilmedi')}</p>
-                        <p class="modal-price"><strong>Fiyat:</strong> ${product.price ? product.price + ' TL' : 'İletişime Geçiniz'}</p>
+                        <p><strong>Kategori:</strong> ${escapeHTML(product.category || '-')}</p>
+                        <p><strong>Ölçü:</strong> ${escapeHTML(product.size || 'Belirtilmedi')}</p>
+                        <p><strong>Fiyat:</strong> ${product.price ? product.price + ' TL' : 'İletişime Geçiniz'}</p>
                         <hr>
-                        <p class="modal-description"><strong>Açıklama:</strong><br>${escapeHTML(product.description || 'Bu ürün için henüz detaylı açıklama eklenmedi.')}</p>
+                        <p><strong>Açıklama:</strong><br>${escapeHTML(product.description || 'Bu ürün için henüz detaylı açıklama eklenmedi.')}</p>
                     </div>
                 </div>
             </div>
         `;
         modal.style.display = "flex";
+        modal.style.position = "fixed";
+        modal.style.top = "0";
+        modal.style.left = "0";
+        modal.style.width = "100%";
+        modal.style.height = "100%";
+        modal.style.backgroundColor = "rgba(0,0,0,0.6)";
+        modal.style.zIndex = "9999";
+        modal.style.alignItems = "center";
+        modal.style.justifyContent = "center";
     };
 
     window.closeProductModal = function() {
@@ -354,7 +319,18 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         if (modal) modal.style.display = "none";
     };
 
-    // DOM Hazır Olduğunda Tüm Verileri Yükle
+    // Event Delegation: Buton tıklamalarını Dinle
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".btn-detail");
+        if (btn && btn.dataset.id) {
+            e.preventDefault();
+            window.openProductModal(btn.dataset.id);
+        }
+        if (e.target.id === "product-detail-modal") {
+            window.closeProductModal();
+        }
+    });
+
     document.addEventListener("DOMContentLoaded", () => {
         loadSiteSettings();
         assistantProductsReady = loadAssistantProducts();
@@ -363,7 +339,7 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         loadCategoryCovers();
         loadFeaturedProducts();
 
-        const category = new URLSearchParams(window.location.search).get("category") || "Halılar";
+        const category = new URLSearchParams(window.location.search).get("category");
         loadCatalogProducts(category);
     });
 }
