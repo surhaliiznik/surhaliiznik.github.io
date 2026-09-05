@@ -467,6 +467,27 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 /* ==========================================================
+   DİNAMİK SAYFA YÖNETİCİLERİ (GLOBAL SCOPE)
+   ========================================================== */
+
+function dashboardYukle() {
+    console.log("Dashboard yükleniyor...");
+}
+
+function urunleriYukle() {
+    console.log("Ürünler listeleniyor...");
+    // Ürün listeleme/yükleme mantığınız burada yer alır
+}
+
+function resimleriYukle() {
+    console.log("Resimler yükleniyor...");
+}
+
+function resimUrunleriniHazirla() {
+    console.log("Resim ürünleri hazırlanıyor...");
+}
+
+/* ==========================================================
    ADMIN PANEL BAŞLAT
    ========================================================== */
 
@@ -663,10 +684,6 @@ async function adminPanelBaslat() {
 
     if (newProductButton) newProductButton.addEventListener("click", () => urunFormunuAc());
     if (cancelProductButton) cancelProductButton.addEventListener("click", () => urunFormunuKapat());
-
-    /* ======================================================
-       GÖRSEL YÜKLEME VE GÜNCELLEME İŞLEMİ (GÜNCELLENEN KISIM)
-       ====================================================== */
 
     async function gorselKaydet(productId, imageUrl, asCategoryCover = false) {
         if (!asCategoryCover) {
