@@ -709,161 +709,153 @@
         Admin panelinde category-images bucketına yüklenen
         görseller category_images tablosundan alınır.
     -->
-    <script>
-    document.addEventListener("DOMContentLoaded", async function () {
+   <script>
+document.addEventListener("DOMContentLoaded", async function () {
 
-        const SUPABASE_URL =
-            "https://lhltolrtgnfkbwfkpaex.supabase.co";
+    try {
 
-        const SUPABASE_KEY =
-            "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
+        /*
+         * ÖNEMLİ:
+         * supabase.js tarafından zaten oluşturulmuş olan
+         * mevcut bağlantıyı kullanıyoruz.
+         *
+         * Böylece ikinci GoTrueClient oluşmuyor.
+         */
+        const client =
+            window.supabaseClient;
 
-        try {
+        if (!client) {
+            console.error(
+                "❌ Mevcut Supabase bağlantısı bulunamadı."
+            );
+            return;
+        }
 
-            if (!window.supabase) {
-                console.error(
-                    "Supabase kütüphanesi yüklenemedi."
-                );
-                return;
-            }
-
-            const supabaseClient =
-                window.supabase.createClient(
-                    SUPABASE_URL,
-                    SUPABASE_KEY
-                );
-
-
-            const categoryImages =
-                document.querySelectorAll(
-                    "[data-category-image]"
-                );
+        console.log(
+            "✅ Mevcut Supabase bağlantısı kullanılıyor."
+        );
 
 
-            if (!categoryImages.length) {
-                return;
-            }
-
-
-            /*
-             * Önce created_at ile sıralamayı deniyoruz.
-             * Eğer tabloda created_at yoksa ikinci sorgu
-             * otomatik olarak devreye giriyor.
-             */
-            let result =
-                await supabaseClient
-                    .from("category_images")
-                    .select("*")
-                    .order("created_at", {
-                        ascending: false
-                    });
-
-
-            if (result.error) {
-
-                console.warn(
-                    "created_at sıralaması başarısız, normal sorgu deneniyor:",
-                    result.error
-                );
-
-                result =
-                    await supabaseClient
-                        .from("category_images")
-                        .select("*");
-            }
-
-
-            if (result.error) {
-
-                console.error(
-                    "Kategori görselleri alınamadı:",
-                    result.error
-                );
-
-                return;
-            }
-
-
-            const images = result.data || [];
-
-
-            if (!images.length) {
-
-                console.warn(
-                    "category_images tablosunda görsel bulunamadı."
-                );
-
-                return;
-            }
-
-
-            /*
-             * Aynı kategoride birden fazla görsel varsa,
-             * sorgudan gelen ilk görseli kullanıyoruz.
-             */
-            categoryImages.forEach(function (img) {
-
-                const category =
-                    (img.getAttribute(
-                        "data-category-image"
-                    ) || "")
-                    .trim()
-                    .toLowerCase();
-
-
-                const found =
-                    images.find(function (item) {
-
-                        const itemCategory =
-                            String(
-                                item.category || ""
-                            )
-                            .trim()
-                            .toLowerCase();
-
-                        return itemCategory === category;
-                    });
-
-
-                if (
-                    found &&
-                    found.image_url
-                ) {
-
-                    img.src =
-                        found.image_url;
-
-                    img.dataset.loaded =
-                        "true";
-
-                } else {
-
-                    console.warn(
-                        "Kategori görseli bulunamadı:",
-                        category
-                    );
-
-                }
-
-            });
-
-
-            console.log(
-                "✅ Supabase kategori görselleri başarıyla yüklendi."
+        const categoryImages =
+            document.querySelectorAll(
+                "[data-category-image]"
             );
 
-        } catch (error) {
+        if (!categoryImages.length) {
+            console.warn(
+                "Kategori görsel alanları bulunamadı."
+            );
+            return;
+        }
+
+
+        /*
+         * Kategori görsellerini Supabase'den al
+         */
+        const { data, error } =
+            await client
+                .from("category_images")
+                .select("*");
+
+
+        if (error) {
 
             console.error(
-                "Kategori görselleri yüklenirken hata oluştu:",
+                "❌ category_images okunamadı:",
                 error
             );
 
+            return;
         }
 
-    });
-    </script>
 
+        console.log(
+            "📸 Supabase kategori görselleri:",
+            data
+        );
+
+
+        if (!data || data.length === 0) {
+
+            console.warn(
+                "⚠️ category_images tablosunda kayıt yok."
+            );
+
+            return;
+        }
+
+
+        /*
+         * Her kategori kartına uygun resmi yerleştir
+         */
+        categoryImages.forEach(function (img) {
+
+            const wantedCategory =
+                String(
+                    img.getAttribute(
+                        "data-category-image"
+                    ) || ""
+                )
+                .trim()
+                .toLowerCase();
+
+
+            const found =
+                data.find(function (item) {
+
+                    const itemCategory =
+                        String(
+                            item.category || ""
+                        )
+                        .trim()
+                        .toLowerCase();
+
+                    return (
+                        itemCategory ===
+                        wantedCategory
+                    );
+                });
+
+
+            if (
+                found &&
+                found.image_url
+            ) {
+
+                img.src =
+                    found.image_url;
+
+                img.style.display =
+                    "block";
+
+                console.log(
+                    "✅ Görsel bulundu:",
+                    wantedCategory,
+                    found.image_url
+                );
+
+            } else {
+
+                console.warn(
+                    "⚠️ Kategori görseli bulunamadı:",
+                    wantedCategory
+                );
+
+            }
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "❌ Kategori görsellerinde hata:",
+            error
+        );
+
+    }
+
+});
+</script>
 
     <!--
         ANA SİTE JAVASCRIPT
