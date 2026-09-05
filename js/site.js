@@ -228,20 +228,20 @@ if (!window.__SUR_SITE_JS_LOADED__) {
         }
     }
 
-    async function loadCategoryCovers() {
-        if (!window.surClient) return;
-        const { data: categories } = await window.surClient.from("categories").select("*");
-        if (!categories) return;
+   async function loadCategoryCovers() {
+    if (!window.surClient) return;
+    // 'categories' yerine veritabanındaki doğru tablo adı olan 'category_images' kullanılıyor:
+    const { data: categories } = await window.surClient.from("category_images").select("*");
+    if (!categories) return;
 
-        categories.forEach(cat => {
-            const el = document.querySelector(`[data-category-cover="${cat.name}"]`);
-            if (el && cat.image_url) {
-                if (el.tagName === 'IMG') el.src = cat.image_url;
-                else el.style.backgroundImage = `url('${cat.image_url}')`;
-            }
-        });
-    }
-
+    categories.forEach(cat => {
+        const el = document.querySelector(`[data-category-cover="${cat.name}"]`);
+        if (el && cat.image_url) {
+            if (el.tagName === 'IMG') el.src = cat.image_url;
+            else el.style.backgroundImage = `url('${cat.image_url}')`;
+        }
+    });
+}
     async function loadFeaturedProducts() {
         const container = document.getElementById("featured-products-container");
         if (!container || !window.surClient) return;
