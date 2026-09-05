@@ -1,58 +1,41 @@
 /* ==========================================================
-   SUR HALI İZNİK - ANA SITE JAVASCRIPT
-   TEMİZ / TEK SUPABASE CLIENT / OTOMATİK BAŞLATMA
+   SUR HALI İZNİK
+   ANA SITE JAVASCRIPT
    ========================================================== */
+
+"use strict";
 
 console.log("🚀 Sur Halı site.js başlatılıyor...");
 
 
 /* ==========================================================
-   1. SUPABASE AYARLARI
+   1. SUPABASE
    ========================================================== */
 
 const SUR_SUPABASE_URL =
     "https://lhltolrtgnfkbwfkpaex.supabase.co";
 
-/*
- * window.SUPABASE_URL = window.SUPABASE_URL ||
-    "https://lhltolrtgnfkbwfkpaex.supabase.co";
- * window.SUPABASE_ANON_KEY =
-    "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn"
- *
- * service_role KEY KULLANMA.
- */
 const SUR_SUPABASE_KEY =
     "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
 
 
-/* ==========================================================
-   2. TEK SUPABASE CLIENT
-   ========================================================== */
-
 window.surClient = null;
+
 
 function initializeSupabase() {
 
     try {
 
         if (!window.supabase) {
-            console.error(
-                "❌ Supabase CDN yüklenmemiş."
-            );
+            console.error("❌ Supabase CDN yüklenmemiş.");
             return false;
         }
 
-        if (!SUR_SUPABASE_URL || !SUR_SUPABASE_KEY) {
-            console.error(
-                "❌ Supabase URL veya KEY eksik."
+        window.surClient =
+            window.supabase.createClient(
+                SUR_SUPABASE_URL,
+                SUR_SUPABASE_KEY
             );
-            return false;
-        }
-
-        window.surClient = window.supabase.createClient(
-            SUR_SUPABASE_URL,
-            SUR_SUPABASE_KEY
-        );
 
         console.log("✅ Supabase bağlantısı hazır.");
 
@@ -61,7 +44,7 @@ function initializeSupabase() {
     } catch (error) {
 
         console.error(
-            "❌ Supabase client oluşturulamadı:",
+            "❌ Supabase oluşturulamadı:",
             error
         );
 
@@ -73,10 +56,32 @@ function initializeSupabase() {
 
 
 /* ==========================================================
-   3. GÜVENLİ RESİM YÜKLEME
+   2. YARDIMCI FONKSİYONLAR
    ========================================================== */
 
-function setImageSafely(img, url, fallback = "assets/images/logo.jpeg") {
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function setImageSafely(
+    img,
+    url,
+    fallback = "assets/images/logo.jpeg"
+) {
 
     if (!img) {
         return;
@@ -89,7 +94,9 @@ function setImageSafely(img, url, fallback = "assets/images/logo.jpeg") {
 
     img.onerror = function () {
 
-        if (this.dataset.fallbackApplied === "1") {
+        if (
+            this.dataset.fallbackApplied === "1"
+        ) {
             return;
         }
 
@@ -102,96 +109,91 @@ function setImageSafely(img, url, fallback = "assets/images/logo.jpeg") {
 
 
 /* ==========================================================
-   4. SITE AYARLARI
+   3. SITE AYARLARI
    ========================================================== */
 
 async function loadSiteSettings() {
 
     if (!window.surClient) {
-        console.warn(
-            "⚠️ loadSiteSettings: Supabase hazır değil."
-        );
         return;
     }
 
     try {
 
-        const { data, error } = await window.surClient
+        const {
+            data,
+            error
+        } = await window.surClient
             .from("site_settings")
             .select("*")
             .limit(1);
 
         if (error) {
+
             console.warn(
                 "⚠️ site_settings okunamadı:",
                 error
             );
+
             return;
         }
 
         const settings = data?.[0];
 
         if (!settings) {
-            console.log(
-                "ℹ️ site_settings tablosunda kayıt bulunamadı."
-            );
             return;
         }
 
-        /*
-         * Site adı
-         */
 
-        document.querySelectorAll(
-            "[data-site-name]"
-        ).forEach(element => {
+        /* LOGO */
 
-            if (settings.site_name) {
-                element.textContent =
-                    settings.site_name;
-            }
+        document
+            .querySelectorAll("[data-site-logo]")
+            .forEach(img => {
 
-        });
+                if (settings.logo_url) {
 
+                    setImageSafely(
+                        img,
+                        settings.logo_url
+                    );
+                }
 
-        /*
-         * Logo
-         */
-
-        document.querySelectorAll(
-            "[data-site-logo]"
-        ).forEach(img => {
-
-            if (settings.logo_url) {
-
-                setImageSafely(
-                    img,
-                    settings.logo_url
-                );
-
-            }
-
-        });
+            });
 
 
-        /*
-         * Hero başlık
-         */
+        /* SITE ADI */
+
+        document
+            .querySelectorAll("[data-site-name]")
+            .forEach(element => {
+
+                if (settings.site_name) {
+                    element.textContent =
+                        settings.site_name;
+                }
+
+            });
+
+
+        /* HERO BAŞLIK */
 
         const heroTitle =
             document.querySelector(
                 "[data-hero-title]"
             );
 
-        if (heroTitle && settings.hero_title) {
+        if (
+            heroTitle &&
+            settings.hero_title
+        ) {
+
             heroTitle.textContent =
                 settings.hero_title;
         }
 
 
-        /*
-         * Hero açıklama
-         */
+        /* HERO AÇIKLAMA */
 
         const heroDescription =
             document.querySelector(
@@ -207,7 +209,6 @@ async function loadSiteSettings() {
                 settings.hero_description;
         }
 
-
         console.log(
             "✅ Site ayarları yüklendi."
         );
@@ -215,7 +216,7 @@ async function loadSiteSettings() {
     } catch (error) {
 
         console.error(
-            "❌ loadSiteSettings hatası:",
+            "❌ loadSiteSettings:",
             error
         );
     }
@@ -223,54 +224,43 @@ async function loadSiteSettings() {
 
 
 /* ==========================================================
-   5. HERO ARKA PLAN
+   4. HERO
    ========================================================== */
 
 async function loadHeroBackground() {
 
     const heroSection =
-        document.querySelector(".hero-section");
+        document.querySelector(
+            ".hero-section"
+        );
 
     const heroMedia =
-        document.querySelector("[data-hero-media]");
+        document.querySelector(
+            "[data-hero-media]"
+        );
 
     if (!heroSection) {
-        console.log(
-            "ℹ️ Hero bölümü bu sayfada yok."
-        );
         return;
     }
-
-    /*
-     * Varsayılan resim.
-     */
 
     let heroUrl =
         "assets/images/hero-bg.jpg";
 
 
-    /*
-     * Supabase'den yönetilen hero resmi.
-     */
-
     if (window.surClient) {
 
         try {
 
-            const { data, error } =
-                await window.surClient
-                    .from("site_settings")
-                    .select("hero_bg_url")
-                    .limit(1);
+            const {
+                data,
+                error
+            } = await window.surClient
+                .from("site_settings")
+                .select("hero_bg_url")
+                .limit(1);
 
-            if (error) {
-
-                console.warn(
-                    "⚠️ Hero Supabase'den okunamadı:",
-                    error
-                );
-
-            } else if (
+            if (
+                !error &&
                 data?.[0]?.hero_bg_url
             ) {
 
@@ -281,77 +271,81 @@ async function loadHeroBackground() {
         } catch (error) {
 
             console.warn(
-                "⚠️ Hero yükleme hatası:",
+                "⚠️ Hero resmi alınamadı:",
                 error
             );
         }
     }
 
 
-    /*
-     * Hero uygula.
-     */
-
-    if (heroUrl) {
-
-        heroSection.style.backgroundImage =
-            `url("${heroUrl}")`;
-
-        heroSection.style.backgroundSize =
-            "cover";
-
-        heroSection.style.backgroundPosition =
-            "center";
-
-        heroSection.style.backgroundRepeat =
-            "no-repeat";
-
-
-        if (heroMedia) {
-
-            heroMedia.style.backgroundImage =
-                `url("${heroUrl}")`;
-
-            heroMedia.style.backgroundSize =
-                "cover";
-
-            heroMedia.style.backgroundPosition =
-                "center";
-        }
-
-        console.log(
-            "✅ Hero resmi yüklendi:",
-            heroUrl
-        );
-    }
-}
-
-
-/* ==========================================================
-   6. KATEGORİ KAPAK RESİMLERİ
-   ========================================================== */
-
-async function loadCategoryCovers() {
-
-    const categoryImages =
-        document.querySelectorAll(
-            "[data-category-cover]"
-        );
-
-    if (!categoryImages.length) {
-
-        console.log(
-            "ℹ️ Kategori kapak alanı bulunamadı."
-        );
-
+    if (!heroUrl) {
         return;
     }
 
 
+    heroSection.style.backgroundImage =
+        `url("${heroUrl}")`;
+
+    heroSection.style.backgroundSize =
+        "cover";
+
+    heroSection.style.backgroundPosition =
+        "center";
+
+    heroSection.style.backgroundRepeat =
+        "no-repeat";
+
+
+    if (heroMedia) {
+
+        heroMedia.style.backgroundImage =
+            `url("${heroUrl}")`;
+
+        heroMedia.style.backgroundSize =
+            "cover";
+
+        heroMedia.style.backgroundPosition =
+            "center";
+
+        heroMedia.style.backgroundRepeat =
+            "no-repeat";
+    }
+
+
+    console.log(
+        "✅ Hero yüklendi."
+    );
+}
+
+
+/* ==========================================================
+   5. KATEGORİ KAPAKLARI
+   ==========================================================
+
+   ÖNEMLİ:
+
+   index.html'deki gerçek yapı:
+
+   data-category-image="Halılar"
+
+   Bu yüzden burada aynı attribute kullanılıyor.
+   ========================================================== */
+
+async function loadCategoryCovers() {
+
+    const images =
+        document.querySelectorAll(
+            "[data-category-image]"
+        );
+
+    if (!images.length) {
+        return;
+    }
+
     if (!window.surClient) {
 
         console.error(
-            "❌ Kategori kapakları için Supabase bağlantısı yok."
+            "❌ Kategori resimleri için Supabase yok."
         );
 
         return;
@@ -360,19 +354,24 @@ async function loadCategoryCovers() {
 
     try {
 
-        const { data: covers, error } =
-            await window.surClient
-                .from("category_images")
-                .select(
-                    "category,image_url,created_at"
-                )
-                .is("product_id", null)
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                );
+        const {
+            data,
+            error
+        } = await window.surClient
+            .from("category_images")
+            .select(
+                "category,image_url,created_at,product_id"
+            )
+            .is(
+                "product_id",
+                null
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
+            );
 
 
         if (error) {
@@ -386,10 +385,10 @@ async function loadCategoryCovers() {
         }
 
 
-        if (!covers?.length) {
+        if (!data?.length) {
 
             console.warn(
-                "⚠️ category_images tablosunda kapak resmi bulunamadı."
+                "⚠️ Kategori kapak kaydı bulunamadı."
             );
 
             return;
@@ -397,82 +396,114 @@ async function loadCategoryCovers() {
 
 
         /*
-         * Her kategori için en yeni resmi al.
+         * Büyük/küçük harf ve Türkçe karakter
+         * problemlerine karşı normalize ediyoruz.
          */
+
+        const normalizeCategory =
+            value =>
+                String(value || "")
+                    .trim()
+                    .toLocaleLowerCase(
+                        "tr-TR"
+                    );
+
 
         const latestCovers = {};
 
-        covers.forEach(cover => {
+
+        /*
+         * Supabase zaten yeni -> eski sıralı.
+         * Böylece ilk bulunan kategori resmi
+         * o kategorinin en güncel resmi oluyor.
+         */
+
+        data.forEach(item => {
 
             if (
-                !cover.category ||
-                !cover.image_url
+                !item.category ||
+                !item.image_url
             ) {
                 return;
             }
 
-            if (
-                !latestCovers[cover.category]
-            ) {
+            const key =
+                normalizeCategory(
+                    item.category
+                );
 
-                latestCovers[cover.category] =
-                    cover.image_url;
+
+            if (!latestCovers[key]) {
+
+                latestCovers[key] =
+                    item.image_url;
             }
 
         });
 
 
-        /*
-         * Sayfadaki kategori kartlarını doldur.
-         */
-
-        categoryImages.forEach(img => {
+        images.forEach(img => {
 
             const category =
-                img.dataset.categoryCover;
+                img.getAttribute(
+                    "data-category-image"
+                );
 
-            if (!category) {
-                return;
-            }
-
+            const key =
+                normalizeCategory(
+                    category
+                );
 
             const imageUrl =
-                latestCovers[category];
+                latestCovers[key];
 
 
             if (!imageUrl) {
 
                 console.warn(
-                    `⚠️ "${category}" kategorisi için kapak bulunamadı.`
+                    "⚠️ Kategori resmi bulunamadı:",
+                    category
                 );
 
                 return;
             }
 
 
-            setImageSafely(img, imageUrl);
+            setImageSafely(
+                img,
+                imageUrl
+            );
 
 
-            const container =
-                img.closest(".category-cover");
+            img.style.display =
+                "block";
 
-            if (container) {
-                container.classList.add(
+
+            const cover =
+                img.closest(
+                    ".category-cover"
+                );
+
+            if (cover) {
+
+                cover.classList.add(
                     "has-image"
                 );
             }
 
+
+            console.log(
+                "✅ Kategori resmi:",
+                category
+            );
+
         });
 
-
-        console.log(
-            "✅ Kategori kapakları yüklendi."
-        );
 
     } catch (error) {
 
         console.error(
-            "❌ loadCategoryCovers hatası:",
+            "❌ loadCategoryCovers:",
             error
         );
     }
@@ -480,108 +511,15 @@ async function loadCategoryCovers() {
 
 
 /* ==========================================================
-   7. ÖNE ÇIKAN ÜRÜNLER
-   ========================================================== */
-
-async function loadFeaturedProducts() {
-
-    const container =
-        document.querySelector(
-            "#featuredProducts"
-        );
-
-    if (!container) {
-
-        console.log(
-            "ℹ️ Öne çıkan ürün alanı bu sayfada yok."
-        );
-
-        return;
-    }
-
-
-    if (!window.surClient) {
-
-        console.error(
-            "❌ Öne çıkan ürünler için Supabase yok."
-        );
-
-        return;
-    }
-
-
-    try {
-
-        const { data: products, error } =
-            await window.surClient
-                .from("products")
-                .select("*")
-                .eq("is_featured", true)
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                );
-
-
-        if (error) {
-
-            console.error(
-                "❌ Öne çıkan ürünler alınamadı:",
-                error
-            );
-
-            return;
-        }
-
-
-        container.innerHTML = "";
-
-
-        if (!products?.length) {
-
-            container.innerHTML = `
-                <div class="empty-products">
-                    <p>Henüz öne çıkan ürün bulunmuyor.</p>
-                </div>
-            `;
-
-            return;
-        }
-
-
-        products.forEach(product => {
-
-            container.appendChild(
-                createProductCard(product)
-            );
-
-        });
-
-
-        console.log(
-            `✅ ${products.length} öne çıkan ürün yüklendi.`
-        );
-
-    } catch (error) {
-
-        console.error(
-            "❌ loadFeaturedProducts hatası:",
-            error
-        );
-    }
-}
-
-
-/* ==========================================================
-   8. ÜRÜN KARTI
+   6. ÜRÜN KARTI
    ========================================================== */
 
 function createProductCard(product) {
 
     const card =
-        document.createElement("article");
+        document.createElement(
+            "article"
+        );
 
     card.className =
         "product-card";
@@ -607,13 +545,17 @@ function createProductCard(product) {
 
 
     card.innerHTML = `
+
         <div class="product-image">
+
             <img
                 src="${escapeHtml(imageUrl)}"
                 alt="${escapeHtml(productName)}"
                 loading="lazy"
             >
+
         </div>
+
 
         <div class="product-info">
 
@@ -623,17 +565,21 @@ function createProductCard(product) {
 
             ${
                 price
-                    ? `<div class="product-price">
-                           ${escapeHtml(price)}
-                       </div>`
+                    ? `
+                        <div class="product-price">
+                            ${escapeHtml(price)}
+                        </div>
+                      `
                     : ""
             }
 
             ${
                 product.category
-                    ? `<div class="product-category">
-                           ${escapeHtml(product.category)}
-                       </div>`
+                    ? `
+                        <div class="product-category">
+                            ${escapeHtml(product.category)}
+                        </div>
+                      `
                     : ""
             }
 
@@ -644,12 +590,14 @@ function createProductCard(product) {
     const img =
         card.querySelector("img");
 
+
     if (img) {
 
         img.onerror = function () {
 
             if (
-                this.dataset.fallbackApplied === "1"
+                this.dataset.fallbackApplied ===
+                "1"
             ) {
                 return;
             }
@@ -668,10 +616,106 @@ function createProductCard(product) {
 
 
 /* ==========================================================
-   9. KATALOG ÜRÜNLERİ
+   7. ÖNE ÇIKAN ÜRÜNLER
    ========================================================== */
 
-async function loadCatalogProducts(category) {
+async function loadFeaturedProducts() {
+
+    const container =
+        document.querySelector(
+            "#featuredProducts"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    if (!window.surClient) {
+        return;
+    }
+
+
+    try {
+
+        const {
+            data,
+            error
+        } = await window.surClient
+            .from("products")
+            .select("*")
+            .eq(
+                "is_featured",
+                true
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
+            );
+
+
+        if (error) {
+
+            console.error(
+                "❌ Öne çıkan ürünler alınamadı:",
+                error
+            );
+
+            return;
+        }
+
+
+        container.innerHTML = "";
+
+
+        if (!data?.length) {
+
+            container.innerHTML = `
+                <div class="empty-products">
+                    <p>
+                        Henüz öne çıkan ürün bulunmuyor.
+                    </p>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        data.forEach(product => {
+
+            container.appendChild(
+                createProductCard(
+                    product
+                )
+            );
+
+        });
+
+
+        console.log(
+            `✅ ${data.length} öne çıkan ürün yüklendi.`
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "❌ loadFeaturedProducts:",
+            error
+        );
+    }
+}
+
+
+/* ==========================================================
+   8. KATALOG ÜRÜNLERİ
+   ========================================================== */
+
+async function loadCatalogProducts(
+    category
+) {
 
     const container =
         document.querySelector(
@@ -679,23 +723,6 @@ async function loadCatalogProducts(category) {
         );
 
     if (!container) {
-        return;
-    }
-
-
-    if (!window.surClient) {
-
-        container.innerHTML = `
-            <div class="catalog-error">
-                <p>Ürünler şu anda yüklenemiyor.</p>
-                <small>Supabase bağlantısı kurulamadı.</small>
-            </div>
-        `;
-
-        console.error(
-            "❌ Katalog için Supabase yok."
-        );
-
         return;
     }
 
@@ -712,39 +739,59 @@ async function loadCatalogProducts(category) {
     }
 
 
-    try {
+    if (!window.surClient) {
 
         container.innerHTML = `
-            <div class="catalog-loading">
-                <p>Ürünler yükleniyor...</p>
+            <div class="catalog-error">
+                <p>
+                    Ürünler şu anda yüklenemiyor.
+                </p>
             </div>
         `;
 
+        return;
+    }
 
-        const { data: products, error } =
-            await window.surClient
-                .from("products")
-                .select("*")
-                .eq("category", category)
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                );
+
+    container.innerHTML = `
+        <div class="catalog-loading">
+            <p>Ürünler yükleniyor...</p>
+        </div>
+    `;
+
+
+    try {
+
+        const {
+            data,
+            error
+        } = await window.surClient
+            .from("products")
+            .select("*")
+            .eq(
+                "category",
+                category
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
+            );
 
 
         if (error) {
 
             console.error(
-                `❌ "${category}" ürünleri alınamadı:`,
+                `❌ ${category} ürünleri alınamadı:`,
                 error
             );
 
-
             container.innerHTML = `
                 <div class="catalog-error">
-                    <p>Ürünler yüklenirken bir hata oluştu.</p>
+                    <p>
+                        Ürünler yüklenirken hata oluştu.
+                    </p>
                     <small>
                         ${escapeHtml(
                             error.message ||
@@ -761,7 +808,7 @@ async function loadCatalogProducts(category) {
         container.innerHTML = "";
 
 
-        if (!products?.length) {
+        if (!data?.length) {
 
             container.innerHTML = `
                 <div class="empty-products">
@@ -771,38 +818,38 @@ async function loadCatalogProducts(category) {
                 </div>
             `;
 
-            console.log(
-                `ℹ️ "${category}" kategorisinde ürün yok.`
-            );
-
             return;
         }
 
 
-        products.forEach(product => {
+        data.forEach(product => {
 
             container.appendChild(
-                createProductCard(product)
+                createProductCard(
+                    product
+                )
             );
 
         });
 
 
         console.log(
-            `✅ "${category}" kategorisinden ${products.length} ürün yüklendi.`
+            `✅ ${category}: ${data.length} ürün`
         );
+
 
     } catch (error) {
 
         console.error(
-            "❌ loadCatalogProducts hatası:",
+            "❌ loadCatalogProducts:",
             error
         );
 
-
         container.innerHTML = `
             <div class="catalog-error">
-                <p>Ürünler yüklenirken beklenmeyen bir hata oluştu.</p>
+                <p>
+                    Ürünler yüklenirken beklenmeyen hata oluştu.
+                </p>
             </div>
         `;
     }
@@ -810,15 +857,37 @@ async function loadCatalogProducts(category) {
 
 
 /* ==========================================================
-   10. KATALOG FİLTRELERİ
+   9. KATALOG FİLTRELERİ
+   ==========================================================
+
+   ÖNEMLİ:
+
+   Eskiden:
+       [data-category]
+
+   kullanılıyordu.
+
+   Bu hatalıydı çünkü index.html'deki kategori
+   kartlarında da data-category var.
+
+   Artık SADECE:
+       .category-filter
+
+   butonlarını seçiyoruz.
    ========================================================== */
 
 function setupCatalogFilters() {
 
     const filters =
         document.querySelectorAll(
-            "[data-category]"
+            ".category-filter"
         );
+
+
+    if (!filters.length) {
+        return;
+    }
+
 
     const title =
         document.querySelector(
@@ -831,22 +900,24 @@ function setupCatalogFilters() {
         );
 
 
-    if (!filters.length) {
+    const descriptions = {
 
-        console.log(
-            "ℹ️ Katalog filtreleri bu sayfada yok."
-        );
+        "Halılar":
+            "Koleksiyonumuzdaki halıları keşfedin.",
 
-        return;
-    }
+        "Klasik Yolluklar":
+            "Klasik yolluk koleksiyonumuzu keşfedin.",
 
+        "Sisal":
+            "Sisal halı koleksiyonumuzu keşfedin.",
 
-    /*
-     * URL'deki kategori.
-     *
-     * Örnek:
-     * halilar.html?category=Sisal
-     */
+        "Kaymaz":
+            "Kaymaz tabanlı ürünlerimizi keşfedin.",
+
+        "Özel Kesim":
+            "Özel ölçü ve kesim ürünlerimizi keşfedin."
+    };
+
 
     const params =
         new URLSearchParams(
@@ -858,13 +929,13 @@ function setupCatalogFilters() {
         params.get("category");
 
 
+    let activeFilter =
+        null;
+
+
     /*
-     * Önce URL'deki kategori,
-     * yoksa ilk filtre.
+     * URL'deki kategoriye göre buton bul.
      */
-
-    let activeFilter = null;
-
 
     if (requestedCategory) {
 
@@ -875,19 +946,29 @@ function setupCatalogFilters() {
                 requestedCategory
             ) {
 
-                activeFilter = filter;
+                activeFilter =
+                    filter;
             }
 
         });
     }
 
 
+    /*
+     * URL geçersizse ilk kategori.
+     */
+
     if (!activeFilter) {
-        activeFilter = filters[0];
+
+        activeFilter =
+            filters[0];
     }
 
 
-    function activateFilter(filter) {
+    function activateFilter(
+        filter,
+        updateUrl = true
+    ) {
 
         if (!filter) {
             return;
@@ -900,11 +981,20 @@ function setupCatalogFilters() {
                 "active"
             );
 
+            item.setAttribute(
+                "aria-selected",
+                "false"
+            );
         });
 
 
         filter.classList.add(
             "active"
+        );
+
+        filter.setAttribute(
+            "aria-selected",
+            "true"
         );
 
 
@@ -913,39 +1003,21 @@ function setupCatalogFilters() {
 
 
         /*
-         * BAŞLIK
+         * Başlık
          */
 
         if (title) {
+
             title.textContent =
                 category;
         }
 
 
         /*
-         * AÇIKLAMA
+         * Açıklama
          */
 
         if (description) {
-
-            const descriptions = {
-
-                "Halılar":
-                    "Koleksiyonumuzdaki halıları keşfedin.",
-
-                "Klasik Yolluklar":
-                    "Klasik yolluk koleksiyonumuzu keşfedin.",
-
-                "Sisal":
-                    "Sisal halı koleksiyonumuzu keşfedin.",
-
-                "Kaymaz":
-                    "Kaymaz tabanlı ürünlerimizi keşfedin.",
-
-                "Özel Kesim":
-                    "Özel ölçü ve kesim ürünlerimizi keşfedin."
-            };
-
 
             description.textContent =
                 descriptions[category] ||
@@ -954,32 +1026,34 @@ function setupCatalogFilters() {
 
 
         /*
-         * URL'yi güncelle.
+         * URL
          */
 
-        const newUrl =
-            `${window.location.pathname}?category=${encodeURIComponent(category)}`;
+        if (updateUrl) {
 
+            try {
 
-        try {
+                const newUrl =
+                    `${window.location.pathname}?category=${encodeURIComponent(category)}`;
 
-            window.history.replaceState(
-                {},
-                "",
-                newUrl
-            );
+                window.history.replaceState(
+                    {},
+                    "",
+                    newUrl
+                );
 
-        } catch (error) {
+            } catch (error) {
 
-            console.warn(
-                "⚠️ URL güncellenemedi:",
-                error
-            );
+                console.warn(
+                    "⚠️ URL güncellenemedi:",
+                    error
+                );
+            }
         }
 
 
         /*
-         * Ürünleri getir.
+         * Ürünler
          */
 
         loadCatalogProducts(
@@ -989,18 +1063,19 @@ function setupCatalogFilters() {
 
 
     /*
-     * Tıklamalar
+     * Buton tıklamaları
      */
 
     filters.forEach(filter => {
 
         filter.addEventListener(
             "click",
-            function(event) {
+            function () {
 
-                event.preventDefault();
-
-                activateFilter(this);
+                activateFilter(
+                    this,
+                    true
+                );
             }
         );
 
@@ -1008,12 +1083,12 @@ function setupCatalogFilters() {
 
 
     /*
-     * Sayfa ilk açıldığında
-     * doğru kategoriyi yükle.
+     * İlk yükleme
      */
 
     activateFilter(
-        activeFilter
+        activeFilter,
+        false
     );
 
 
@@ -1024,8 +1099,11 @@ function setupCatalogFilters() {
 
 
 /* ==========================================================
-   11. ASİSTAN ÜRÜNLERİ
+   10. ASİSTAN ÜRÜNLERİ
    ========================================================== */
+
+let assistantProducts = [];
+
 
 async function loadAssistantProducts() {
 
@@ -1036,17 +1114,19 @@ async function loadAssistantProducts() {
 
     try {
 
-        const { data, error } =
-            await window.surClient
-                .from("products")
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                )
-                .limit(100);
+        const {
+            data,
+            error
+        } = await window.surClient
+            .from("products")
+            .select("*")
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
+            )
+            .limit(100);
 
 
         if (error) {
@@ -1060,18 +1140,23 @@ async function loadAssistantProducts() {
         }
 
 
-        window.surAssistantProducts =
+        assistantProducts =
             data || [];
 
 
+        window.surAssistantProducts =
+            assistantProducts;
+
+
         console.log(
-            `✅ Asistan için ${window.surAssistantProducts.length} ürün hazır.`
+            `✅ Asistan için ${assistantProducts.length} ürün hazır.`
         );
+
 
     } catch (error) {
 
         console.warn(
-            "⚠️ loadAssistantProducts hatası:",
+            "⚠️ loadAssistantProducts:",
             error
         );
     }
@@ -1079,16 +1164,782 @@ async function loadAssistantProducts() {
 
 
 /* ==========================================================
-   12. TRY-ON KREDİ SENKRONİZASYONU
+   11. KATEGORİ ALGILAMA
    ========================================================== */
+
+function detectCategoryIntent(
+    message
+) {
+
+    const text =
+        String(message || "")
+            .toLocaleLowerCase(
+                "tr-TR"
+            );
+
+
+    if (
+        text.includes("sisal")
+    ) {
+        return "Sisal";
+    }
+
+
+    if (
+        text.includes("kaymaz")
+    ) {
+        return "Kaymaz";
+    }
+
+
+    if (
+        text.includes("özel ölçü") ||
+        text.includes("özel olcu") ||
+        text.includes("özel kesim") ||
+        text.includes("özel kes")
+    ) {
+        return "Özel Kesim";
+    }
+
+
+    if (
+        text.includes("klasik yolluk")
+    ) {
+        return "Klasik Yolluklar";
+    }
+
+
+    if (
+        text.includes("yolluk")
+    ) {
+        return "Klasik Yolluklar";
+    }
+
+
+    if (
+        text.includes("halı") ||
+        text.includes("hali") ||
+        text.includes("fiyat")
+    ) {
+        return "Halılar";
+    }
+
+
+    return null;
+}
+
+
+/* ==========================================================
+   12. ASİSTAN İÇİN ÜRÜN ARAMA
+   ========================================================== */
+
+function findAssistantProducts(
+    message
+) {
+
+    const text =
+        String(message || "")
+            .toLocaleLowerCase(
+                "tr-TR"
+            );
+
+
+    const category =
+        detectCategoryIntent(
+            message
+        );
+
+
+    const tokens =
+        text
+            .replace(
+                /[^a-zçğıöşü0-9\s-]/gi,
+                " "
+            )
+            .split(/\s+/)
+            .filter(
+                token =>
+                    token.length > 2
+            );
+
+
+    return assistantProducts
+        .map(product => {
+
+            const searchable = [
+
+                product.name,
+
+                product.title,
+
+                product.category,
+
+                product.description,
+
+                product.size
+
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLocaleLowerCase(
+                    "tr-TR"
+                );
+
+
+            let score =
+                category &&
+                product.category ===
+                category
+                    ? 5
+                    : 0;
+
+
+            tokens.forEach(token => {
+
+                if (
+                    searchable.includes(
+                        token
+                    )
+                ) {
+                    score++;
+                }
+
+            });
+
+
+            return {
+                product,
+                score
+            };
+
+        })
+        .filter(
+            item =>
+                item.score > 0
+        )
+        .sort(
+            (a, b) =>
+                b.score - a.score
+        )
+        .slice(
+            0,
+            3
+        )
+        .map(
+            item =>
+                item.product
+        );
+}
+
+
+/* ==========================================================
+   13. AI ASİSTAN
+   ==========================================================
+
+   BURADA ÖNEMLİ BİR NOKTA VAR:
+
+   Frontend'e Groq/Replicate SECRET KEY koymuyoruz.
+
+   Önce Supabase Edge Function deniyoruz.
+
+   Fonksiyon adı mevcut sistemde:
+       groq-chat
+
+   ========================================================== */
+
+async function askGroqAI(
+    message
+) {
+
+    if (!message) {
+        return "";
+    }
+
+
+    if (!window.surClient) {
+
+        throw new Error(
+            "Supabase bağlantısı kurulamadı."
+        );
+    }
+
+
+    /*
+     * Ürün hafızası henüz gelmediyse
+     * beklemeden devam ediyoruz.
+     */
+
+    const products =
+        findAssistantProducts(
+            message
+        );
+
+
+    const productContext =
+        products.map(product => ({
+
+            id: product.id,
+
+            name:
+                product.name ||
+                product.title ||
+                "",
+
+            title:
+                product.title ||
+                product.name ||
+                "",
+
+            category:
+                product.category ||
+                "",
+
+            price:
+                product.price ??
+                "",
+
+            size:
+                product.size ||
+                "",
+
+            description:
+                product.description ||
+                "",
+
+            image_url:
+                product.image_url ||
+                ""
+
+        }));
+
+
+    const payload = {
+
+        message:
+            String(message).trim(),
+
+        products:
+            productContext
+
+    };
+
+
+    console.log(
+        "🤖 AI mesajı gönderiliyor..."
+    );
+
+
+    let result;
+
+
+    try {
+
+        result =
+            await window.surClient.functions.invoke(
+                "groq-chat",
+                {
+                    body: payload
+                }
+            );
+
+    } catch (error) {
+
+        console.error(
+            "❌ groq-chat bağlantı hatası:",
+            error
+        );
+
+        throw new Error(
+            "Asistana ulaşılamadı. Lütfen tekrar deneyin."
+        );
+    }
+
+
+    const {
+        data,
+        error
+    } = result || {};
+
+
+    if (error) {
+
+        console.error(
+            "❌ groq-chat hata:",
+            error
+        );
+
+        throw new Error(
+            error.message ||
+            "Asistan şu anda cevap veremiyor."
+        );
+    }
+
+
+    /*
+     * Edge Function farklı cevap formatları
+     * döndürürse hepsini destekle.
+     */
+
+    const answer =
+
+        data?.answer ||
+
+        data?.message ||
+
+        data?.response ||
+
+        data?.content ||
+
+        data?.text;
+
+
+    if (!answer) {
+
+        console.error(
+            "❌ AI boş cevap döndürdü:",
+            data
+        );
+
+        throw new Error(
+            "Asistandan boş cevap geldi."
+        );
+    }
+
+
+    return String(
+        answer
+    );
+}
+
+
+/* ==========================================================
+   14. ASİSTAN MESAJ GÖSTERME
+   ========================================================== */
+
+function addAssistantMessage(
+    text,
+    type = "bot"
+) {
+
+    const messages =
+        document.querySelector(
+            "#aiChatMessages"
+        );
+
+    if (!messages) {
+        return;
+    }
+
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.className =
+        type === "user"
+            ? "ai-msg ai-msg-user"
+            : "ai-msg ai-msg-bot";
+
+
+    div.style.padding =
+        "8px 12px";
+
+    div.style.borderRadius =
+        "8px";
+
+    div.style.marginBottom =
+        "8px";
+
+    div.style.whiteSpace =
+        "pre-wrap";
+
+
+    if (type === "user") {
+
+        div.style.background =
+            "#2c3e50";
+
+        div.style.color =
+            "#fff";
+
+    } else {
+
+        div.style.background =
+            "#e9ecef";
+
+        div.style.color =
+            "#222";
+    }
+
+
+    div.textContent =
+        text;
+
+
+    messages.appendChild(
+        div
+    );
+
+
+    messages.scrollTop =
+        messages.scrollHeight;
+
+
+    return div;
+}
+
+
+/* ==========================================================
+   15. ASİSTAN CHAT
+   ========================================================== */
+
+function setupAIChat() {
+
+    const input =
+        document.querySelector(
+            "#aiChatInput"
+        );
+
+    const sendButton =
+        document.querySelector(
+            "#aiChatSend"
+        );
+
+    const messages =
+        document.querySelector(
+            "#aiChatMessages"
+        );
+
+
+    if (
+        !input ||
+        !sendButton ||
+        !messages
+    ) {
+
+        console.log(
+            "ℹ️ AI sohbet alanı bu sayfada yok."
+        );
+
+        return;
+    }
+
+
+    /*
+     * Aynı listener'ın iki kez eklenmesini önle.
+     */
+
+    if (
+        sendButton.dataset.chatReady ===
+        "1"
+    ) {
+        return;
+    }
+
+
+    sendButton.dataset.chatReady =
+        "1";
+
+
+    let sending =
+        false;
+
+
+    async function sendMessage() {
+
+        if (sending) {
+            return;
+        }
+
+
+        const message =
+            input.value.trim();
+
+
+        if (!message) {
+            return;
+        }
+
+
+        sending = true;
+
+
+        input.value = "";
+
+
+        addAssistantMessage(
+            message,
+            "user"
+        );
+
+
+        const loading =
+            addAssistantMessage(
+                "Yazıyor...",
+                "bot"
+            );
+
+
+        sendButton.disabled =
+            true;
+
+        sendButton.style.opacity =
+            "0.6";
+
+
+        try {
+
+            const answer =
+                await askGroqAI(
+                    message
+                );
+
+
+            if (loading) {
+
+                loading.remove();
+            }
+
+
+            addAssistantMessage(
+                answer,
+                "bot"
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "❌ Asistan mesaj hatası:",
+                error
+            );
+
+
+            if (loading) {
+                loading.remove();
+            }
+
+
+            addAssistantMessage(
+                error.message ||
+                "Bir hata oluştu. Lütfen tekrar deneyin.",
+                "bot"
+            );
+
+
+        } finally {
+
+            sending = false;
+
+            sendButton.disabled =
+                false;
+
+            sendButton.style.opacity =
+                "1";
+
+            input.focus();
+        }
+    }
+
+
+    sendButton.addEventListener(
+        "click",
+        sendMessage
+    );
+
+
+    input.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key ===
+                "Enter"
+            ) {
+
+                event.preventDefault();
+
+                sendMessage();
+            }
+
+        }
+    );
+
+
+    /*
+     * Resim yükleme butonu
+     */
+
+    const uploadButton =
+        document.querySelector(
+            "#chat-upload-btn"
+        );
+
+    const fileInput =
+        document.querySelector(
+            "#chat-file-input"
+        );
+
+
+    if (
+        uploadButton &&
+        fileInput
+    ) {
+
+        uploadButton.addEventListener(
+            "click",
+            function () {
+
+                fileInput.click();
+            }
+        );
+
+
+        fileInput.addEventListener(
+            "change",
+            function () {
+
+                const file =
+                    this.files?.[0];
+
+
+                if (!file) {
+                    return;
+                }
+
+
+                addAssistantMessage(
+                    "📷 Görsel seçildi. Görsel analizi bağlantısı hazır olduğunda burada işlenecek.",
+                    "bot"
+                );
+
+
+                this.value = "";
+            }
+        );
+    }
+
+
+    console.log(
+        "✅ Sur Halı Asistanı hazır."
+    );
+}
+
+
+/* ==========================================================
+   16. TRY-ON KREDİ
+   ========================================================== */
+
+function getTryOnDeviceId() {
+
+    let deviceId =
+        localStorage.getItem(
+            "tryOnDeviceId"
+        );
+
+
+    if (!deviceId) {
+
+        deviceId =
+            "device-" +
+            (
+                window.crypto &&
+                crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : `${Date.now()}-${Math.random()
+                        .toString(36)
+                        .slice(2)}`
+            );
+
+
+        localStorage.setItem(
+            "tryOnDeviceId",
+            deviceId
+        );
+    }
+
+
+    return deviceId;
+}
+
+
+function getTryOnCredits() {
+
+    const value =
+        localStorage.getItem(
+            "tryOnCredits"
+        );
+
+
+    if (
+        value ===
+        "unlimited"
+    ) {
+
+        return Infinity;
+    }
+
+
+    return Math.max(
+        0,
+        Number.parseInt(
+            value,
+            10
+        ) || 0
+    );
+}
+
+
+function consumeTryOnCredit() {
+
+    const credits =
+        getTryOnCredits();
+
+
+    if (
+        credits !==
+        Infinity
+    ) {
+
+        localStorage.setItem(
+            "tryOnCredits",
+            String(
+                Math.max(
+                    0,
+                    credits - 1
+                )
+            )
+        );
+    }
+}
+
 
 async function syncTryOnCredits() {
 
-    /*
-     * Bu fonksiyon daha önce kullandığın
-     * user_credits sisteminin çökmesini engellemek
-     * için güvenli şekilde çalışır.
-     */
+    const stored =
+        localStorage.getItem(
+            "tryOnCredits"
+        );
+
+
+    if (
+        stored !== "unlimited" &&
+        Number.isNaN(
+            Number.parseInt(
+                stored,
+                10
+            )
+        )
+    ) {
+
+        localStorage.setItem(
+            "tryOnCredits",
+            "2"
+        );
+    }
+
 
     if (!window.surClient) {
         return;
@@ -1097,65 +1948,91 @@ async function syncTryOnCredits() {
 
     try {
 
-        const {
-            data: {
-                session
-            }
-        } =
-            await window.surClient.auth.getSession();
-
-
-        if (!session?.user) {
-
-            console.log(
-                "ℹ️ Giriş yapılmadığı için kredi senkronizasyonu atlandı."
-            );
-
-            return;
-        }
-
-
-        const userId =
-            session.user.id;
+        const deviceId =
+            getTryOnDeviceId();
 
 
         const {
             data,
             error
-        } =
-            await window.surClient
-                .from("user_credits")
-                .select("*")
-                .eq(
-                    "user_id",
-                    userId
-                )
-                .maybeSingle();
+        } = await window.surClient
+            .from("user_credits")
+            .select(
+                "identifier,credits,is_unlimited,updated_at"
+            )
+            .eq(
+                "identifier",
+                deviceId
+            )
+            .maybeSingle();
 
 
-        if (error) {
+        if (error || !data) {
+            return;
+        }
 
-            console.warn(
-                "⚠️ user_credits okunamadı:",
-                error
+
+        if (
+            data.is_unlimited ===
+            true
+        ) {
+
+            localStorage.setItem(
+                "tryOnCredits",
+                "unlimited"
             );
 
             return;
         }
 
 
-        window.surUserCredits =
-            data || null;
+        const syncKey =
+            `tryOnCreditsSynced:${deviceId}`;
 
 
-        console.log(
-            "✅ Kullanıcı kredi bilgisi hazır."
-        );
+        if (
+            data.updated_at !==
+            localStorage.getItem(
+                syncKey
+            )
+        ) {
+
+            const current =
+                Number.parseInt(
+                    localStorage.getItem(
+                        "tryOnCredits"
+                    ),
+                    10
+                ) || 0;
+
+
+            localStorage.setItem(
+                "tryOnCredits",
+                String(
+                    current +
+                    (
+                        Number(
+                            data.credits
+                        ) || 0
+                    )
+                )
+            );
+
+
+            localStorage.setItem(
+                syncKey,
+                data.updated_at ||
+                String(
+                    Date.now()
+                )
+            );
+        }
+
 
     } catch (error) {
 
         console.warn(
-            "⚠️ syncTryOnCredits hatası:",
+            "⚠️ Kredi senkronizasyonu:",
             error
         );
     }
@@ -1163,158 +2040,202 @@ async function syncTryOnCredits() {
 
 
 /* ==========================================================
-   13. VIRTUAL TRY-ON
+   17. VIRTUAL TRY-ON
    ========================================================== */
 
 async function invokeVirtualTryOn(
-    roomImage,
-    carpetImage
+    product,
+    roomImage
 ) {
 
-    /*
-     * Buradaki fonksiyon, mevcut sistemin
-     * çağırabileceği global fonksiyondur.
-     *
-     * Replicate API anahtarını frontend'e koymuyoruz.
-     */
-
-    console.warn(
-        "⚠️ invokeVirtualTryOn çağrıldı."
-    );
-
-    if (!roomImage || !carpetImage) {
+    if (!window.surClient) {
 
         throw new Error(
-            "Oda ve halı görselleri gerekli."
+            "Supabase bağlantısı hazır değil."
         );
     }
 
 
-    /*
-     * Mevcut backend / Edge Function sistemin varsa
-     * buraya bağlanabilir.
-     *
-     * Frontend'e Replicate secret koyma.
-     */
+    if (
+        !product?.image_url
+    ) {
 
-    throw new Error(
-        "Virtual Try-On backend bağlantısı henüz tanımlı değil."
+        throw new Error(
+            "Ürün görseli bulunamadı."
+        );
+    }
+
+
+    if (!roomImage) {
+
+        throw new Error(
+            "Oda görseli bulunamadı."
+        );
+    }
+
+
+    const payload = {
+
+        room_image:
+            roomImage,
+
+        product_image:
+            product.image_url,
+
+        product_id:
+            product.id || null
+    };
+
+
+    console.log(
+        "🤖 Virtual Try-On başlatılıyor..."
     );
+
+
+    const {
+        data,
+        error
+    } = await window.surClient.functions.invoke(
+        "virtual-try-on",
+        {
+            body: payload
+        }
+    );
+
+
+    if (error) {
+
+        console.error(
+            "❌ Virtual Try-On:",
+            error
+        );
+
+        throw new Error(
+            error.message ||
+            "Sanal giydirme başarısız."
+        );
+    }
+
+
+    if (
+        !data?.output_url
+    ) {
+
+        console.error(
+            "❌ Virtual Try-On cevap:",
+            data
+        );
+
+        throw new Error(
+            "Sanal giydirme sonucu alınamadı."
+        );
+    }
+
+
+    return data.output_url;
 }
 
 
 /* ==========================================================
-   14. ODA ANALİZİ
+   18. ODA ANALİZİ
    ========================================================== */
 
-async function analyzeRoom(imageFile) {
+async function analyzeRoom(
+    imageFile
+) {
 
     if (!imageFile) {
 
         throw new Error(
-            "Analiz için bir oda görseli gerekli."
+            "Analiz için oda görseli gerekli."
+        );
+    }
+
+
+    if (!window.surClient) {
+
+        throw new Error(
+            "Supabase bağlantısı hazır değil."
         );
     }
 
 
     /*
-     * Burada da gizli API anahtarını
-     * frontend'de kullanmıyoruz.
-     *
-     * Mevcut backend fonksiyonuna bağlanacak.
+     * Dosyayı Base64'e çevir.
      */
 
-    console.warn(
-        "⚠️ analyzeRoom çağrıldı."
-    );
+    const imageData =
+        await new Promise(
+            (resolve, reject) => {
+
+                const reader =
+                    new FileReader();
 
 
-    throw new Error(
-        "Oda analiz backend bağlantısı tanımlı değil."
-    );
-}
+                reader.onload =
+                    () => resolve(
+                        reader.result
+                    );
 
 
-/* ==========================================================
-   15. GROQ AI
-   ========================================================== */
-
-async function askGroqAI(message) {
-
-    if (!message) {
-        return "";
-    }
+                reader.onerror =
+                    () => reject(
+                        new Error(
+                            "Görsel okunamadı."
+                        )
+                    );
 
 
-    /*
-     * GÜVENLİK:
-     *
-     * Groq API KEY frontend JS içinde bulunmamalıdır.
-     *
-     * Eski kodda bulunan GROQ API key'i
-     * frontend'den kaldır.
-     *
-     * Burada backend / Edge Function kullanılmalı.
-     */
-
-    console.warn(
-        "⚠️ askGroqAI çağrıldı."
-    );
-
-
-    throw new Error(
-        "AI bağlantısı için güvenli backend/Edge Function gerekli."
-    );
-}
-
-
-/* ==========================================================
-   16. HTML ESCAPE
-   ========================================================== */
-
-function escapeHtml(value) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return "";
-    }
-
-
-    return String(value)
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
+                reader.readAsDataURL(
+                    imageFile
+                );
+            }
         );
+
+
+    const {
+        data,
+        error
+    } = await window.surClient.functions.invoke(
+        "analyze-room",
+        {
+            body: {
+                image: imageData
+            }
+        }
+    );
+
+
+    if (error) {
+
+        console.error(
+            "❌ Oda analizi:",
+            error
+        );
+
+        throw new Error(
+            error.message ||
+            "Oda analiz edilemedi."
+        );
+    }
+
+
+    return data;
 }
 
 
 /* ==========================================================
-   17. GLOBAL FONKSİYONLAR
+   19. GLOBAL FONKSİYONLAR
    ========================================================== */
 
-window.loadCategoryCovers =
-    loadCategoryCovers;
+window.loadSiteSettings =
+    loadSiteSettings;
 
 window.loadHeroBackground =
     loadHeroBackground;
+
+window.loadCategoryCovers =
+    loadCategoryCovers;
 
 window.loadFeaturedProducts =
     loadFeaturedProducts;
@@ -1328,8 +2249,11 @@ window.setupCatalogFilters =
 window.loadAssistantProducts =
     loadAssistantProducts;
 
-window.syncTryOnCredits =
-    syncTryOnCredits;
+window.askGroqAI =
+    askGroqAI;
+
+window.setupAIChat =
+    setupAIChat;
 
 window.invokeVirtualTryOn =
     invokeVirtualTryOn;
@@ -1337,33 +2261,40 @@ window.invokeVirtualTryOn =
 window.analyzeRoom =
     analyzeRoom;
 
-window.askGroqAI =
-    askGroqAI;
+window.getTryOnCredits =
+    getTryOnCredits;
+
+window.consumeTryOnCredit =
+    consumeTryOnCredit;
+
+window.syncTryOnCredits =
+    syncTryOnCredits;
 
 
 /* ==========================================================
-   18. ANA BAŞLATMA
+   20. ANA BAŞLATMA
    ========================================================== */
 
 async function initializeSurHaliSite() {
 
     console.log(
-        "🔄 Sur Halı site sistemi başlatılıyor..."
+        "🔄 Sur Halı sistemi başlatılıyor..."
     );
 
 
     /*
-     * Önce Supabase.
+     * Supabase
      */
 
-    initializeSupabase();
+    const supabaseReady =
+        initializeSupabase();
 
 
     /*
      * Supabase hazırsa verileri yükle.
      */
 
-    if (window.surClient) {
+    if (supabaseReady) {
 
         await Promise.allSettled([
 
@@ -1380,17 +2311,24 @@ async function initializeSurHaliSite() {
             syncTryOnCredits()
 
         ]);
-
     }
 
 
     /*
-     * Katalog sistemi.
+     * Katalog.
      *
-     * Supabase'den bağımsız olarak başlasın.
+     * SADECE .category-filter kullanır.
+     * Ana sayfadaki kategori kartlarına dokunmaz.
      */
 
     setupCatalogFilters();
+
+
+    /*
+     * AI
+     */
+
+    setupAIChat();
 
 
     console.log(
@@ -1408,7 +2346,7 @@ async function initializeSurHaliSite() {
 
 
 /* ==========================================================
-   19. DOM HAZIR OLDUĞUNDA ÇALIŞTIR
+   21. DOM READY
    ========================================================== */
 
 if (
