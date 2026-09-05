@@ -321,5 +321,92 @@ if (!window.__SUR_SITE_JS_LOADED__) {
 
         const category = new URLSearchParams(window.location.search).get("category") || "Halılar";
         loadCatalogProducts(category);
+
+// 1. Kapak resimlerini 'category_images' tablosundan çeken fonksiyon
+async function loadCategoryCovers() {
+    if (!window.surClient) return;
+    const { data: categories } = await window.surClient.from("category_images").select("*");
+    if (!categories) return;
+
+    categories.forEach(cat => {
+        // Hem data-category hem data-category-cover eşleşmesini kontrol eder
+        const el = document.querySelector(`[data-category-cover="${cat.name}"], [data-category="${cat.name}"]`);
+        if (el && cat.image_url) {
+            if (el.tagName === 'IMG') {
+                el.src = cat.image_url;
+            } else {
+                el.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('${cat.image_url}')`;
+            }
+        }
+    });
+}
+
+// 2. Tıklanınca Detay Gösteren Katalog Yükleyici
+async function loadCatalogProducts(categoryName = "Halılar") {
+    const container = document.getElementById("catalog-products-container");
+    if (!container || !window.surClient) return;
+
+    let query = window.surClient.from("products").select("*").eq("is_active", true);
+    if (categoryName && categoryName !== "Tümü") {
+        query = query.eq("category", categoryName);
+    }
+
+    const { data: products, error } = await query;
+    if (error || !products || products.length === 0) {
+        container.innerHTML = `<p class="no-products">Bu kategoride ürün bulunamadı.</p>`;
+        return;
+    }
+
+    // Ürün kartları (Detay Butonu Modal Açacak)
+    container.innerHTML = products.map(product => `
+        <div class="product-card">
+            <img src="${escapeHTML(product.image_url)}" alt="${escapeHTML(productTitle(product))}" loading="lazy">
+            <h3>${escapeHTML(productTitle(product))}</h3>
+            <p class="category">${escapeHTML(product.category || '')}</p>
+            <button type="button" class="btn-detail" onclick="openProductModal('${product.id}')">İncele & Detaylar</button>
+        </div>
+    `).join("");
+
+    // Ürün verilerini pencere kullanımı için hafızada sakla
+    window.currentCatalogProducts = products;
+}
+
+// 3. Ürün Açıklamasını ve Detaylarını Gösteren Pencere (Modal) Fonksiyonu
+window.openProductModal = function(productId) {
+    const product = (window.currentCatalogProducts || []).find(p => String(p.id) === String(productId));
+    if (!product) return;
+
+    let modal = document.getElementById("product-detail-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "product-detail-modal";
+        modal.className = "product-modal";
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeProductModal()">&times;</span>
+            <div class="modal-body">
+                <img src="${escapeHTML(product.image_url)}" alt="${escapeHTML(productTitle(product))}">
+                <div class="modal-info">
+                    <h2>${escapeHTML(productTitle(product))}</h2>
+                    <p class="modal-category"><strong>Kategori:</strong> ${escapeHTML(product.category || '-')}</p>
+                    <p class="modal-size"><strong>Ölçü:</strong> ${escapeHTML(product.size || 'Belirtilmedi')}</p>
+                    <p class="modal-price"><strong>Fiyat:</strong> ${product.price ? product.price + ' TL' : 'İletişime Geçiniz'}</p>
+                    <hr>
+                    <p class="modal-description"><strong>Açıklama:</strong><br>${escapeHTML(product.description || 'Bu ürün için henüz detaylı açıklama eklenmedi.')}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.style.display = "flex";
+};
+
+window.closeProductModal = function() {
+    const modal = document.getElementById("product-detail-modal");
+    if (modal) modal.style.display = "none";
+};
+        
     });
 }
