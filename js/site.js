@@ -66,7 +66,6 @@ async function loadCategoryBanner(category) {
             .maybeSingle();
 
         var data = res.data;
-        // Tablodaki farklı olası resim sütun isimlerini dener
         var bannerUrl = data ? (data.banner_url || data.image_url || data.cover_image || data.image) : null;
 
         if (bannerUrl) {
@@ -128,7 +127,6 @@ function renderProducts(products, container) {
 
     products.forEach(function (product) {
         var title = product.title || product.name || product.product_name || "Halı Modeli";
-        // Ürün resmi için veritabanındaki tüm olası sütun isimleri kontrol edilir
         var image = product.image_url || product.image || product.photo || product.img_url || "assets/images/logo.jpeg";
         var price = product.price ? product.price + " TL" : "Fiyat Sorunuz";
         var category = product.category || "";
@@ -286,5 +284,5 @@ function renderCartItems() {
 }
 
 function escapeHTML(str) {
-    return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace/>/g, "&gt;").replace(/"/g, "&quot;");
+    return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
