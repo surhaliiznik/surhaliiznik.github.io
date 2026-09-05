@@ -1,752 +1,1427 @@
-/* SUR HALI - GİTHUB JS KODU */
+/* ==========================================================
+   SUR HALI İZNİK - ANA SITE JAVASCRIPT
+   TEMİZ / TEK SUPABASE CLIENT / OTOMATİK BAŞLATMA
+   ========================================================== */
 
-const SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
-const SUR_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobHRvbHJ0Z25ma2J3ZmtwYWV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTExNjYsImV4cCI6MjEwMTY4NzE2Nn0.y8OryUG7jK2lvDwKD6Y61oqPJnzKzd9RWohRQc1bBgw";
-const GROQ_API_KEY = "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";
+console.log("🚀 Sur Halı site.js başlatılıyor...");
 
-window.surClient = window.supabase ? window.supabase.createClient(SUR_SUPABASE_URL, SUR_SUPABASE_KEY) : null;
-let assistantProducts = [];
-let assistantProductsReady = Promise.resolve();
-let lastRoomImageDataUrl = "";
-window.site_settings = window.site_settings || {};
+
+/* ==========================================================
+   1. SUPABASE AYARLARI
+   ========================================================== */
+
+const SUR_SUPABASE_URL =
+    "https://lhltolrtgnfkbwfkpaex.supabase.co";
+
+/*
+ * window.SUPABASE_URL = window.SUPABASE_URL ||
+    "https://lhltolrtgnfkbwfkpaex.supabase.co";
+ * window.SUPABASE_ANON_KEY =
+    "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn"
+ *
+ * service_role KEY KULLANMA.
+ */
+const SUR_SUPABASE_KEY =
+    "sb_publishable_xdWMVRunvPSeiMw2vfGWyw_l6dTnBsn";
+
+
+/* ==========================================================
+   2. TEK SUPABASE CLIENT
+   ========================================================== */
+
+window.surClient = null;
+
+function initializeSupabase() {
+
+    try {
+
+        if (!window.supabase) {
+            console.error(
+                "❌ Supabase CDN yüklenmemiş."
+            );
+            return false;
+        }
+
+        if (!SUR_SUPABASE_URL || !SUR_SUPABASE_KEY) {
+            console.error(
+                "❌ Supabase URL veya KEY eksik."
+            );
+            return false;
+        }
+
+        window.surClient = window.supabase.createClient(
+            SUR_SUPABASE_URL,
+            SUR_SUPABASE_KEY
+        );
+
+        console.log("✅ Supabase bağlantısı hazır.");
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "❌ Supabase client oluşturulamadı:",
+            error
+        );
+
+        window.surClient = null;
+
+        return false;
+    }
+}
+
+
+/* ==========================================================
+   3. GÜVENLİ RESİM YÜKLEME
+   ========================================================== */
+
+function setImageSafely(img, url, fallback = "assets/images/logo.jpeg") {
+
+    if (!img) {
+        return;
+    }
+
+    if (!url) {
+        img.src = fallback;
+        return;
+    }
+
+    img.onerror = function () {
+
+        if (this.dataset.fallbackApplied === "1") {
+            return;
+        }
+
+        this.dataset.fallbackApplied = "1";
+        this.src = fallback;
+    };
+
+    img.src = url;
+}
+
+
+/* ==========================================================
+   4. SITE AYARLARI
+   ========================================================== */
 
 async function loadSiteSettings() {
-    if (!window.surClient) return;
+
+    if (!window.surClient) {
+        console.warn(
+            "⚠️ loadSiteSettings: Supabase hazır değil."
+        );
+        return;
+    }
+
     try {
+
         const { data, error } = await window.surClient
             .from("site_settings")
             .select("*")
             .limit(1);
+
         if (error) {
-            console.error("site_settings yüklenemedi (sorgu hatası):", error);
+            console.warn(
+                "⚠️ site_settings okunamadı:",
+                error
+            );
             return;
         }
-        const row = data?.[0];
-        if (row) {
-            window.site_settings = Object.assign({}, window.site_settings, row);
-            if (window.site_settings.openrouter_api_key) {
-                console.info("site_settings yüklendi. openrouter_api_key mevcut.");
-            } else {
-                console.warn("site_settings tablosunda openrouter_api_key tanımlı değil veya boş.");
-            }
-        } else {
-            console.warn("site_settings tablosunda kayıt bulunamadı.");
-        }
-    } catch (err) {
-        console.error("site_settings yüklenirken beklenmeyen hata:", err);
-    }
-}
 
-const categoryLinks = {
-    "Halılar": "halilar.html?category=Halılar",
-    "Klasik Yolluklar": "halilar.html?category=Klasik%20Yolluklar",
-    "Sisal": "halilar.html?category=Sisal",
-    "Kaymaz": "halilar.html?category=Kaymaz",
-    "Özel Kesim": "halilar.html?category=%C3%96zel%20Kesim"
-};
+        const settings = data?.[0];
 
-function escapeHTML(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function detectCategoryIntent(message) {
-    const normalizedMessage = message.toLocaleLowerCase("tr-TR");
-
-    if (normalizedMessage.includes("sisal")) return "Sisal";
-    if (normalizedMessage.includes("kaymaz")) return "Kaymaz";
-    if (normalizedMessage.includes("özel ölçü") || normalizedMessage.includes("özel olcu") || normalizedMessage.includes("özel kesim") || normalizedMessage.includes("özel kes") || normalizedMessage.includes("metreye")) return "Özel Kesim";
-    if (normalizedMessage.includes("klasik yolluk")) return "Klasik Yolluklar";
-    if (normalizedMessage.includes("yolluk")) return "Klasik Yolluklar";
-    if (normalizedMessage.includes("halı") || normalizedMessage.includes("hali") || normalizedMessage.includes("fiyat")) return "Halılar";
-
-    return null;
-}
-
-function productTitle(product) {
-    return product.title || product.name || "Halı Model";
-}
-
-function productLink(product) {
-    const category = product.category || "Halılar";
-    const identifier = product.slug || product.id;
-    return `halilar.html?category=${encodeURIComponent(category)}&product=${encodeURIComponent(identifier || "")}`;
-}
-
-function findAssistantProducts(message) {
-    const normalizedMessage = message.toLocaleLowerCase("tr-TR");
-    const category = detectCategoryIntent(message);
-    const tokens = normalizedMessage
-        .replace(/[^a-zçğıöşü0-9\s-]/gi, " ")
-        .split(/\s+/)
-        .filter(token => token.length > 2);
-
-    return assistantProducts
-        .map(product => {
-            const searchable = [productTitle(product), product.category, product.description, product.size]
-                .filter(Boolean)
-                .join(" ")
-                .toLocaleLowerCase("tr-TR");
-            let score = category && product.category === category ? 5 : 0;
-            tokens.forEach(token => {
-                if (searchable.includes(token)) score += 1;
-            });
-            return { product, score };
-        })
-        .filter(item => item.score > 0)
-        .sort((left, right) => right.score - left.score)
-        .slice(0, 2)
-        .map(item => item.product);
-}
-
-async function loadAssistantProducts() {
-    if (!window.surClient) {
-        console.error("Asistan ürün hafızası yüklenemedi: Supabase istemcisi hazır değil.");
-        return;
-    }
-
-    const { data, error } = await window.surClient
-        .from("products")
-        .select("*")
-        .eq("is_active", true);
-
-    if (error) {
-        console.error("Asistan ürün hafızası yüklenemedi. products sorgusu hata verdi:", {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-            error
-        });
-        return;
-    }
-
-    assistantProducts = data || [];
-    if (!assistantProducts.length) {
-        console.error("Asistan ürün hafızası boş: products tablosunda is_active = true olan ürün bulunamadı.");
-        return;
-    }
-
-    console.info(`Asistan ürün hafızası hazır: ${assistantProducts.length} aktif ürün yüklendi.`);
-}
-
-function assistantProductContext() {
-    return assistantProducts.map(product => ({
-        id: product.id,
-        slug: product.slug || null,
-        title: productTitle(product),
-        category: product.category || "",
-        image_url: product.image_url || ""
-    }));
-}
-
-function needsStoreSupport(message) {
-    const normalizedMessage = message.toLocaleLowerCase("tr-TR");
-    return normalizedMessage.includes("özel ölçü") || normalizedMessage.includes("özel olcu") ||
-        normalizedMessage.includes("özel kesim") || normalizedMessage.includes("fiyat teklifi") ||
-        normalizedMessage.includes("kararsız") || normalizedMessage.includes("kararsiz") ||
-        normalizedMessage.includes("emin değil") || normalizedMessage.includes("emin degil");
-}
-
-function getTryOnDeviceId() {
-    let deviceId = localStorage.getItem("tryOnDeviceId");
-    if (!deviceId) {
-        deviceId = `device-${crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
-        localStorage.setItem("tryOnDeviceId", deviceId);
-    }
-    return deviceId;
-}
-
-async function syncTryOnCredits() {
-    console.log("Sanal halı hakları kontrolü başladı.");
-    const storedValue = localStorage.getItem("tryOnCredits");
-    const storedCredits = Number.parseInt(storedValue, 10);
-    if (storedValue !== "unlimited" && Number.isNaN(storedCredits)) localStorage.setItem("tryOnCredits", "2");
-    if (!window.surClient) {
-        console.error("Supabase hak kontrolü başarısız: istemci hazır değil. Yerel 2 hakla devam ediliyor.");
-        return;
-    }
-
-    let { data, error } = await window.surClient
-        .from("user_credits")
-        .select("identifier,credits,is_unlimited,updated_at")
-        .eq("identifier", getTryOnDeviceId())
-        .maybeSingle();
-
-    if (error) {
-        console.error("user_credits okunamadı, site_settings fallback deneniyor:", error);
-        const fallback = await window.surClient
-            .from("site_settings")
-            .select("id,identifier,try_on_credits,try_on_unlimited,updated_at")
-            .eq("identifier", getTryOnDeviceId())
-            .maybeSingle();
-        data = fallback.data ? {
-            identifier: fallback.data.identifier,
-            credits: fallback.data.try_on_credits,
-            is_unlimited: fallback.data.try_on_unlimited,
-            updated_at: fallback.data.updated_at
-        } : null;
-        error = fallback.error;
-        if (error) {
-            console.error("Sanal halı hak kaydı okunamadı:", error);
+        if (!settings) {
+            console.log(
+                "ℹ️ site_settings tablosunda kayıt bulunamadı."
+            );
             return;
         }
-    }
-    if (!data) return;
-    if (data.is_unlimited === true) {
-        localStorage.setItem("tryOnCredits", "unlimited");
-        return;
-    }
 
-    const syncKey = `tryOnCreditsSynced:${getTryOnDeviceId()}`;
-    if (data.updated_at !== localStorage.getItem(syncKey)) {
-        const currentCredits = Number.parseInt(localStorage.getItem("tryOnCredits"), 10) || 0;
-        localStorage.setItem("tryOnCredits", String(currentCredits + (Number(data.credits) || 0)));
-        localStorage.setItem(syncKey, data.updated_at || String(Date.now()));
-    }
-}
+        /*
+         * Site adı
+         */
 
-function getTryOnCredits() {
-    const value = localStorage.getItem("tryOnCredits");
-    return value === "unlimited" ? Infinity : Math.max(0, Number.parseInt(value, 10) || 0);
-}
+        document.querySelectorAll(
+            "[data-site-name]"
+        ).forEach(element => {
 
-function consumeTryOnCredit() {
-    const credits = getTryOnCredits();
-    if (credits !== Infinity) localStorage.setItem("tryOnCredits", String(Math.max(0, credits - 1)));
-}
-
-async function consumeRemoteTryOnCredit() {
-    if (!window.surClient) return;
-
-    const deviceId = getTryOnDeviceId();
-    const { data, error } = await window.surClient
-        .from("user_credits")
-        .select("id,credits,is_unlimited")
-        .eq("identifier", deviceId)
-        .maybeSingle();
-
-    if (error || !data || data.is_unlimited === true) return;
-
-    const nextCredits = Math.max(0, (Number(data.credits) || 0) - 1);
-    const { error: updateError } = await window.surClient
-        .from("user_credits")
-        .update({ credits: nextCredits, updated_at: new Date().toISOString() })
-        .eq("id", data.id);
-
-    if (updateError) console.error("Sanal giydirme hakkı düşürülemedi:", updateError);
-}
-
-async function invokeVirtualTryOn(product, roomImage) {
-    if (!window.surClient) throw new Error("Sanal giydirme servisi hazır değil (surClient yok).");
-    const productImage = product?.image_url;
-    if (!productImage) throw new Error("Bu ürünün görseli bulunamadı (product.image_url eksik).");
-    if (!roomImage) throw new Error("Oda görseli boş, VTO çalıştırılamaz.");
-
-    const payload = {
-        room_image: roomImage,
-        product_image: productImage,
-        product_id: product?.id
-    };
-    console.log("[invokeVirtualTryOn] Edge Function çağrılıyor. product_id:", payload.product_id,
-        "room_image uzunluğu:", String(payload.room_image || "").length,
-        "product_image:", String(payload.product_image || "").slice(0, 120));
-
-    let rawResult;
-    try {
-        rawResult = await window.surClient.functions.invoke("virtual-try-on", { body: payload });
-    } catch (networkErr) {
-        console.groupCollapsed("[invokeVirtualTryOn] Ağ/network hatası (fetch atıldı ama cevap alınamadı)");
-        console.error("Hata nesnesi:", networkErr);
-        console.error("Mesaj:", networkErr?.message);
-        console.error("Stack:", networkErr?.stack);
-        console.error("Name:", networkErr?.name);
-        console.groupEnd();
-        const enriched = new Error(`Sanal giydirme servisine ulaşılamadı (ağ hatası): ${networkErr?.message || "Bilinmeyen ağ hatası"}`);
-        enriched.cause = networkErr;
-        throw enriched;
-    }
-
-    const { data, error } = rawResult || {};
-    if (!error && data?.output_url) {
-        console.log("[invokeVirtualTryOn] BAŞARILI. output_url:", String(data.output_url).slice(0, 140));
-        return data.output_url;
-    }
-
-    const httpStatus = error?.status || error?.context?.responseStatus || (typeof error?.response?.status === "number" ? error.response.status : undefined);
-    const isFunctionsHttpError = error?.name === "FunctionsHttpError" ||
-        (typeof httpStatus === "number" && httpStatus >= 400) ||
-        (error && typeof error.context === "object");
-
-    let edgeBody = null;
-    let edgeErrorMsg = null;
-    let edgeDetails = null;
-    let edgeRawText = null;
-    if (isFunctionsHttpError) {
-        const ctx = error?.context || {};
-        const resp = error?.response || {};
-        let jsonCandidate = null;
-        if (ctx && typeof ctx.json === "function") {
-            try { jsonCandidate = await ctx.json(); } catch (_) { jsonCandidate = null; }
-        }
-        if (!jsonCandidate && typeof error?.context === "object" && error?.context?.error) {
-            jsonCandidate = error.context;
-        }
-        if (!jsonCandidate && resp && typeof resp.json === "function") {
-            try { jsonCandidate = await resp.json(); } catch (_) { jsonCandidate = null; }
-        }
-        if (!jsonCandidate) {
-            let rawText = null;
-            if (ctx && typeof ctx.text === "function") {
-                try { rawText = await ctx.text(); } catch (_) {}
+            if (settings.site_name) {
+                element.textContent =
+                    settings.site_name;
             }
-            if (!rawText && resp && typeof resp.text === "function") {
-                try { rawText = await resp.text(); } catch (_) {}
-            }
-            edgeRawText = rawText || null;
-            if (rawText) {
-                try { jsonCandidate = JSON.parse(rawText); } catch (_) { jsonCandidate = null; }
-            }
-        }
-        if (!jsonCandidate && error && (error.error || error.details)) {
-            jsonCandidate = { error: error.error, details: error.details };
-        }
-        edgeBody = jsonCandidate;
-        edgeErrorMsg = jsonCandidate?.error || error?.message || edgeBody?.message || error?.context?.message || "Edge Function tarafında açıklanmamış hata";
-        edgeDetails = jsonCandidate?.details || error?.details || (jsonCandidate && (jsonCandidate.reason || jsonCandidate.raw)) || null;
-    }
 
-    console.groupCollapsed("[invokeVirtualTryOn] Edge Function HATALI veya output_url eksik döndü");
-    console.error("error nesnesi:", error);
-    console.error("httpStatus:", httpStatus);
-    console.error("isFunctionsHttpError:", isFunctionsHttpError);
-    console.error("Supabase FunctionsHttpError.message (genel):", error?.message);
-    console.error("Edge Function body (JSON):", edgeBody);
-    console.error("Edge body içindeki 'error' alanı:", edgeErrorMsg);
-    console.error("Edge body içindeki 'details' alanı (varsa):", edgeDetails);
-    console.error("Edge body ham text (varsa):", edgeRawText);
-    console.error("data (varsa):", data);
-    console.error("data?.output_url (varsa):", data?.output_url);
-    console.groupEnd();
-
-    if (isFunctionsHttpError) {
-        const statusPart = typeof httpStatus === "number" ? ` (HTTP ${httpStatus})` : "";
-        const parts = [];
-        if (edgeErrorMsg) parts.push(String(edgeErrorMsg));
-        if (edgeDetails && String(edgeDetails) !== String(edgeErrorMsg)) parts.push(String(edgeDetails));
-        const combined = parts.length ? parts.join(" | ") : (error?.message || "Bilinmeyen Edge Function hatası");
-        const userMsg = `Sanal giydirme başarısız${statusPart}: ${combined}`.slice(0, 600);
-        const enrichedErr = new Error(userMsg);
-        enrichedErr.cause = error;
-        enrichedErr.vto = {
-            httpStatus,
-            edgeError: edgeErrorMsg,
-            edgeDetails,
-            edgeBody,
-            edgeRawText
-        };
-        throw enrichedErr;
-    }
-
-    if (error) {
-        const enrichedErr = new Error(`Sanal giydirme çağrısı başarısız: ${error.message || "Bilinmeyen hata"}`);
-        enrichedErr.cause = error;
-        throw enrichedErr;
-    }
-
-    throw new Error("Sanal giydirme sonucu alınamadı (output_url eksik). Edge Function yanıtı: " + JSON.stringify(data || {}).slice(0, 300));
-}
-
-function compressImageToDataUrl(file, maxSize = 1024, quality = 0.7) {
-    console.log("Görsel sıkıştırma başlıyor:", file.name);
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => {
-            console.error("FileReader görsel okuma hatası:", reader.error);
-            reject(reader.error || new Error("Görsel okunamadı."));
-        };
-        reader.onload = () => {
-            console.log("FileReader görseli okudu.");
-            const image = new Image();
-            image.onerror = () => {
-                console.error("Görsel Image nesnesine yüklenemedi.");
-                reject(new Error("Görsel boyutlandırılamadı."));
-            };
-            image.onload = () => {
-                console.log("Görsel boyutları:", image.naturalWidth, "x", image.naturalHeight);
-                const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
-                const canvas = document.createElement("canvas");
-                canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-                canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-                console.log("Canvas boyutları:", canvas.width, "x", canvas.height);
-                const context = canvas.getContext("2d");
-                if (!context) {
-                    console.error("Canvas 2D context oluşturulamadı.");
-                    reject(new Error("Görsel sıkıştırma alanı oluşturulamadı."));
-                    return;
-                }
-                context.imageSmoothingEnabled = true;
-                context.imageSmoothingQuality = "high";
-                context.drawImage(image, 0, 0, canvas.width, canvas.height);
-                const compressedImage = canvas.toDataURL("image/jpeg", quality);
-                console.log("Görsel canvas üzerinde sıkıştırıldı. Base64 uzunluğu:", compressedImage.length);
-                resolve(compressedImage);
-            };
-            image.src = reader.result;
-        };
-        console.log("FileReader.readAsDataURL başlatılıyor.");
-        reader.readAsDataURL(file);
-    });
-}
-
-async function analyzeRoom(base64Image) {
-    console.log("[analyzeRoom] başladı. base64Image uzunluğu:", base64Image?.length || 0);
-    try {
-        if (!base64Image) {
-            throw new Error("Oda görseli içeriği boş geldi (base64Image tanımsız).");
-        }
-        if (!window.site_settings?.openrouter_api_key) {
-            console.warn("[analyzeRoom] site_settings.openrouter_api_key henüz yüklenmemiş, loadSiteSettings bekleniyor...");
-            await loadSiteSettings();
-            if (!window.site_settings?.openrouter_api_key) {
-                throw new Error("OpenRouter API anahtarı (site_settings.openrouter_api_key) bulunamadı veya boş! Supabase site_settings tablosundaki openrouter_api_key sütununu kontrol edin.");
-            }
-            console.log("[analyzeRoom] site_settings beklendi ve openrouter_api_key yüklendi.");
-        }
-        const apiKey = String(window.site_settings.openrouter_api_key).trim();
-        console.log("[analyzeRoom] kullanılacak API anahtarı (son 4): ...", apiKey.slice(-4));
-
-        const formattedImage = base64Image.startsWith("data:")
-            ? base64Image
-            : `data:image/jpeg;base64,${base64Image}`;
-
-        const endpointUrl = "https://openrouter.ai/api/v1/chat/completions".trim();
-        const candidateModels = [
-            "qwen/qwen2.5-vl-72b-instruct",
-            "google/gemini-2.0-flash-exp:free"
-        ];
-        const userPrompt = "Bu oda görselini analiz et ve renk, tarz ile ortam özelliklerini değerlendirerek uygun halı önerilerinde bulun.";
-        const buildPayload = (m) => ({
-            model: m,
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        { type: "text", text: userPrompt },
-                        {
-                            type: "image_url",
-                            image_url: {
-                                url: formattedImage,
-                                detail: "low"
-                            }
-                        }
-                    ]
-                }
-            ]
         });
 
-        let lastError = null;
-        let modelIndex = 0;
-        let data = null;
-        let usedModel = null;
-        while (modelIndex < candidateModels.length) {
-            const modelName = candidateModels[modelIndex];
-            usedModel = modelName;
-            modelIndex++;
-            console.log("[analyzeRoom] istek hazırlanıyor. endpoint:", endpointUrl, "model:", modelName);
-            const requestPayload = buildPayload(modelName);
-            try {
-                const response = await fetch(endpointUrl, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey}`,
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": window.location.origin,
-                        "X-Title": "Sur Hali Iznik VTO"
-                    },
-                    body: JSON.stringify(requestPayload)
-                });
 
-                console.log(`[analyzeRoom] [${modelName}] yanıt durumu:`, response.status, response.statusText);
-                const responseText = await response.text();
-                let stepData = null;
-                try {
-                    stepData = JSON.parse(responseText);
-                } catch (parseErr) {
-                    console.error(`[analyzeRoom] [${modelName}] yanıt JSON parse edilemedi. Ham (ilk 1500):`, responseText?.slice?.(0, 1500));
-                    stepData = { raw: responseText };
-                }
+        /*
+         * Logo
+         */
 
-                if (!response.ok) {
-                    const errDetail = stepData && (stepData.error || stepData.raw)
-                        ? (typeof stepData.error === "string" ? stepData.error : (stepData.error?.message || JSON.stringify(stepData.error || stepData.raw)))
-                        : "Açıklanamayan API hatası";
-                    console.error(`[analyzeRoom] [${modelName}] HATALI:`, {
-                        status: response.status,
-                        statusText: response.statusText,
-                        errDetail,
-                        fullData: stepData,
-                        rawTail: responseText?.slice?.(-1000)
-                    });
-                    lastError = new Error(`[${modelName}] OpenRouter API Hatası: ${response.status} ${response.statusText} — ${errDetail}`);
-                    continue;
-                }
+        document.querySelectorAll(
+            "[data-site-logo]"
+        ).forEach(img => {
 
-                const analysis = stepData?.choices?.[0]?.message?.content?.trim?.();
-                if (!analysis) {
-                    console.error(`[analyzeRoom] [${modelName}] yanıt boş veya format dışı. choices:`, stepData?.choices, "tam data:", stepData);
-                    lastError = new Error(`[${modelName}] Oda analizi yanıtı boş döndü.`);
-                    continue;
-                }
-                console.log(`[analyzeRoom] [${modelName}] BAŞARILI. Analiz (ilk 200):`, analysis.slice(0, 200));
-                data = stepData;
-                return analysis;
-            } catch (networkErr) {
-                console.error(`[analyzeRoom] [${modelName}] Ağ/fetch hatası:`, networkErr);
-                lastError = networkErr;
-                continue;
+            if (settings.logo_url) {
+
+                setImageSafely(
+                    img,
+                    settings.logo_url
+                );
+
             }
+
+        });
+
+
+        /*
+         * Hero başlık
+         */
+
+        const heroTitle =
+            document.querySelector(
+                "[data-hero-title]"
+            );
+
+        if (heroTitle && settings.hero_title) {
+            heroTitle.textContent =
+                settings.hero_title;
         }
 
-        if (lastError) throw lastError;
-        throw new Error("Tüm OpenRouter vision modelleri denendi ancak oda analizi tamamlanamadı.");
+
+        /*
+         * Hero açıklama
+         */
+
+        const heroDescription =
+            document.querySelector(
+                "[data-hero-description]"
+            );
+
+        if (
+            heroDescription &&
+            settings.hero_description
+        ) {
+
+            heroDescription.textContent =
+                settings.hero_description;
+        }
+
+
+        console.log(
+            "✅ Site ayarları yüklendi."
+        );
 
     } catch (error) {
-        console.groupCollapsed("Oda Görseli Analiz Hatası (js/site.js - analyzeRoom)");
-        console.error("Hata nesnesi:", error);
-        console.error("Mesaj:", error?.message);
-        console.error("Stack:", error?.stack);
-        console.error("Cause:", error?.cause);
-        console.error("Name:", error?.name);
-        console.groupEnd();
-        throw error;
+
+        console.error(
+            "❌ loadSiteSettings hatası:",
+            error
+        );
     }
 }
 
-async function loadCategoryCovers() {
-    if (!window.surClient) return;
 
-    const { data: covers, error } = await window.surClient
-        .from("category_images")
-        .select("category,image_url,created_at")
-        .is("product_id", null)
-        .order("created_at", { ascending: false });
+/* ==========================================================
+   5. HERO ARKA PLAN
+   ========================================================== */
 
-    if (error) {
-        console.error("Kategori kapakları yüklenemedi:", error);
+async function loadHeroBackground() {
+
+    const heroSection =
+        document.querySelector(".hero-section");
+
+    const heroMedia =
+        document.querySelector("[data-hero-media]");
+
+    if (!heroSection) {
+        console.log(
+            "ℹ️ Hero bölümü bu sayfada yok."
+        );
         return;
     }
 
-    const latestCovers = {};
-    (covers || []).forEach(cover => {
-        if (cover.category && cover.image_url && !latestCovers[cover.category]) {
-            latestCovers[cover.category] = cover.image_url;
-        }
-    });
+    /*
+     * Varsayılan resim.
+     */
 
-    document.querySelectorAll(".category-card[data-category]").forEach(card => {
-        const imageUrl = latestCovers[card.dataset.category];
-        const image = card.querySelector(".category-cover img");
+    let heroUrl =
+        "assets/images/hero-bg.jpg";
 
-        if (imageUrl && image) {
-            image.src = imageUrl;
-            image.closest(".category-cover")?.classList.add("has-image");
-        }
-    });
-}
 
-async function loadHeroBackground() {
-    const defaultHeroUrl = "assets/images/hero-bg.jpg";
-    const heroSection = document.querySelector(".hero-section");
-    const heroMedia = document.querySelector("[data-hero-media]");
-    if (!heroSection) return;
+    /*
+     * Supabase'den yönetilen hero resmi.
+     */
 
-    let heroUrl = defaultHeroUrl;
     if (window.surClient) {
-        const { data, error } = await window.surClient
-            .from("site_settings")
-            .select("hero_bg_url")
-            .limit(1);
 
-        if (error) {
-            console.warn("Hero ayarı okunamadı, varsayılan görsel kullanılacak:", error);
-        } else if (data?.[0]?.hero_bg_url) {
-            heroUrl = data[0].hero_bg_url;
+        try {
+
+            const { data, error } =
+                await window.surClient
+                    .from("site_settings")
+                    .select("hero_bg_url")
+                    .limit(1);
+
+            if (error) {
+
+                console.warn(
+                    "⚠️ Hero Supabase'den okunamadı:",
+                    error
+                );
+
+            } else if (
+                data?.[0]?.hero_bg_url
+            ) {
+
+                heroUrl =
+                    data[0].hero_bg_url;
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "⚠️ Hero yükleme hatası:",
+                error
+            );
         }
     }
 
-    heroSection.style.backgroundImage = `url("${heroUrl}")`;
-    if (heroMedia) {
-        heroMedia.style.backgroundImage = `url("${heroUrl}")`;
+
+    /*
+     * Hero uygula.
+     */
+
+    if (heroUrl) {
+
+        heroSection.style.backgroundImage =
+            `url("${heroUrl}")`;
+
+        heroSection.style.backgroundSize =
+            "cover";
+
+        heroSection.style.backgroundPosition =
+            "center";
+
+        heroSection.style.backgroundRepeat =
+            "no-repeat";
+
+
+        if (heroMedia) {
+
+            heroMedia.style.backgroundImage =
+                `url("${heroUrl}")`;
+
+            heroMedia.style.backgroundSize =
+                "cover";
+
+            heroMedia.style.backgroundPosition =
+                "center";
+        }
+
+        console.log(
+            "✅ Hero resmi yüklendi:",
+            heroUrl
+        );
     }
 }
 
-// ÜRÜNLERİ YÜKLE
-async function loadFeaturedProducts() {
-    const container = document.getElementById('featuredProducts');
-    if (!container || !window.surClient) return;
+
+/* ==========================================================
+   6. KATEGORİ KAPAK RESİMLERİ
+   ========================================================== */
+
+async function loadCategoryCovers() {
+
+    const categoryImages =
+        document.querySelectorAll(
+            "[data-category-cover]"
+        );
+
+    if (!categoryImages.length) {
+
+        console.log(
+            "ℹ️ Kategori kapak alanı bulunamadı."
+        );
+
+        return;
+    }
+
+
+    if (!window.surClient) {
+
+        console.error(
+            "❌ Kategori kapakları için Supabase bağlantısı yok."
+        );
+
+        return;
+    }
+
 
     try {
-        const { data: products, error } = await window.surClient
-            .from('products')
-            .select('*')
-            .eq('is_featured', true);
 
-        if (error || !products || products.length === 0) {
-            container.innerHTML = '<p class="no-data" style="text-align:center; width:100%; padding:20px;">Ürün bulunamadı.</p>';
+        const { data: covers, error } =
+            await window.surClient
+                .from("category_images")
+                .select(
+                    "category,image_url,created_at"
+                )
+                .is("product_id", null)
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
+
+        if (error) {
+
+            console.error(
+                "❌ category_images okunamadı:",
+                error
+            );
+
             return;
         }
 
-        container.innerHTML = products.map(product => {
-            const title = product.name || 'Halı Model';
-            const price = product.price ? `${product.price} TL` : 'Fiyat Belirtilmedi';
-            
-            let imgSrc = (product.image_url && product.image_url.trim() !== '') 
-                ? product.image_url 
-                : 'assets/images/logo.jpeg';
 
-            return `
-                <div class="product-card">
-                    <div class="product-image">
-                        <img src="${imgSrc}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
-                    </div>
-                    <div class="product-info">
-                        <h3>${title}</h3>
-                        <p class="product-price">${price}</p>
-                        <a href="https://wa.me/905396369095?text=Merhaba,%20${encodeURIComponent(title)}%20hakkında%20bilgi%20almak%20istiyorum" target="_blank" class="primary-button">WhatsApp ile Sipariş</a>
-                    </div>
-                </div>
-            `;
-        }).join('');
-   } catch (error) {
-        console.error("Giydirme hatası:", error);
-    }
-}
+        if (!covers?.length) {
 
-function renderCatalogProducts(products, category) {
-    const container = document.getElementById("catalogProducts");
-    if (!container) return;
+            console.warn(
+                "⚠️ category_images tablosunda kapak resmi bulunamadı."
+            );
 
-    if (!products.length) {
-        container.innerHTML = `<div class="empty-state"><h2>${escapeHTML(category)}</h2><p>Bu kategoride şu anda ürün bulunamadı.</p></div>`;
-        return;
-    }
-
-    container.innerHTML = products.map(product => {
-        const title = product.name || "Halı Model";
-        const imageUrl = product.image_url || "assets/images/logo.jpeg";
-        const price = product.price ? `${escapeHTML(product.price)} TL` : "Fiyat bilgisi için iletişime geçin";
-
-        return `
-            <article class="product-card" data-product-id="${escapeHTML(product.slug || product.id || "")}">
-                <div class="product-image">
-                    <img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/logo.jpeg';">
-                </div>
-                <div class="product-info">
-                    <span class="product-category">${escapeHTML(product.category || category)}</span>
-                    <h3 class="product-title">${escapeHTML(title)}</h3>
-                    <p class="product-size">${escapeHTML(product.size || "")}</p>
-                    <p class="product-price">${price}</p>
-                    <a class="primary-button product-card-button" href="https://wa.me/905396369095?text=${encodeURIComponent(`${title} hakkında bilgi almak istiyorum`)}" target="_blank" rel="noopener">WhatsApp ile Bilgi Al</a>
-                </div>
-            </article>
-        `;
-    }).join("");
-}
-
-async function loadCatalogProducts(category) {
-    const container = document.getElementById("catalogProducts");
-    if (!container || !window.surClient) return;
-
-    container.innerHTML = '<div class="loading-state">Ürünler yükleniyor...</div>';
-
-    const { data, error } = await window.surClient
-        .from("products")
-        .select("*")
-        .eq("category", category)
-        .order("created_at", { ascending: false });
-
-    if (error) {
-        console.error("Katalog ürünleri yüklenemedi:", error);
-        container.innerHTML = '<div class="error-state">Ürünler yüklenirken bir hata oluştu.</div>';
-        return;
-    }
-
-    renderCatalogProducts((data || []).filter(product => product.is_active !== false), category);
-
-    const requestedProduct = new URLSearchParams(window.location.search).get("product");
-    if (requestedProduct) {
-        const productCard = container.querySelector(`[data-product-id="${CSS.escape(requestedProduct)}"]`);
-        productCard?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-}
-
-function setupCatalogFilters() {
-    const filters = document.querySelectorAll(".category-filter[data-category]");
-    if (!filters.length) return;
-
-    const requestedCategory = new URLSearchParams(window.location.search).get("category");
-    const initialCategory = [...filters].some(filter => filter.dataset.category === requestedCategory)
-        ? requestedCategory
-        : filters[0].dataset.category;
-
-    function selectCategory(category, updateUrl) {
-        filters.forEach(filter => filter.classList.toggle("active", filter.dataset.category === category));
-        const title = document.getElementById("catalogTitle");
-        if (title) title.textContent = category;
-        loadCatalogProducts(category);
-
-        if (updateUrl) {
-            history.replaceState(null, "", `halilar.html?category=${encodeURIComponent(category)}`);
+            return;
         }
-    }
 
-    filters.forEach(filter => {
-        filter.addEventListener("click", () => selectCategory(filter.dataset.category, true));
-    });
-    selectCategory(initialCategory, false);
-}
 
-// GROQ AI CHATBOT
-async function askGroqAI(userMessage) {
-    const category = detectCategoryIntent(userMessage);
-    const categoryInstruction = category
-        ? ` Kullanıcı ${category} kategorisiyle ilgileniyor. Yanıtının sonunda ${category} kategorisini inceleyebileceğini belirt.`
-        : " Kategori net değilse kullanıcıdan tercihlerini veya ölçüsünü sor.";
-    const productsInstruction = assistantProducts.length
-        ? ` Aktif ürün kataloğu context'i: ${JSON.stringify(assistantProductContext())}. Bu listedeki ürünler dışındaki ürünleri varmış gibi anlatma.`
-        : " Aktif ürün kataloğu şu anda kullanılamıyor; ürün adı veya stok uydurma.";
+        /*
+         * Her kategori için en yeni resmi al.
+         */
 
-    try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${GROQ_API_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [
-                    { role: "system", content: "Sen İznik Sur Halı'nın samimi ve uzman satış danışmanısın. Müşterilere evleri için en uygun halı, kaymaz yolluk, makine halısı ve özel ölçü kesim seçeneklerinde yardımcı olursun. Kısa, açık ve samimi cevaplar ver." + categoryInstruction + productsInstruction },
-                    { role: "user", content: userMessage }
-                ]
-            })
+        const latestCovers = {};
+
+        covers.forEach(cover => {
+
+            if (
+                !cover.category ||
+                !cover.image_url
+            ) {
+                return;
+            }
+
+            if (
+                !latestCovers[cover.category]
+            ) {
+
+                latestCovers[cover.category] =
+                    cover.image_url;
+            }
+
         });
 
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("Groq API hatası:", response.status, errText);
-            return "Şu anda yapay zeka asistanımız yanıt veremiyor. Lütfen WhatsApp hattımız üzerinden bizimle iletişime geçin.";
+
+        /*
+         * Sayfadaki kategori kartlarını doldur.
+         */
+
+        categoryImages.forEach(img => {
+
+            const category =
+                img.dataset.categoryCover;
+
+            if (!category) {
+                return;
+            }
+
+
+            const imageUrl =
+                latestCovers[category];
+
+
+            if (!imageUrl) {
+
+                console.warn(
+                    `⚠️ "${category}" kategorisi için kapak bulunamadı.`
+                );
+
+                return;
+            }
+
+
+            setImageSafely(img, imageUrl);
+
+
+            const container =
+                img.closest(".category-cover");
+
+            if (container) {
+                container.classList.add(
+                    "has-image"
+                );
+            }
+
+        });
+
+
+        console.log(
+            "✅ Kategori kapakları yüklendi."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "❌ loadCategoryCovers hatası:",
+            error
+        );
+    }
+}
+
+
+/* ==========================================================
+   7. ÖNE ÇIKAN ÜRÜNLER
+   ========================================================== */
+
+async function loadFeaturedProducts() {
+
+    const container =
+        document.querySelector(
+            "#featuredProducts"
+        );
+
+    if (!container) {
+
+        console.log(
+            "ℹ️ Öne çıkan ürün alanı bu sayfada yok."
+        );
+
+        return;
+    }
+
+
+    if (!window.surClient) {
+
+        console.error(
+            "❌ Öne çıkan ürünler için Supabase yok."
+        );
+
+        return;
+    }
+
+
+    try {
+
+        const { data: products, error } =
+            await window.surClient
+                .from("products")
+                .select("*")
+                .eq("is_featured", true)
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
+
+        if (error) {
+
+            console.error(
+                "❌ Öne çıkan ürünler alınamadı:",
+                error
+            );
+
+            return;
         }
 
-        const data = await response.json();
-        return data?.choices?.[0]?.message?.content?.trim() || "Yanıt oluşturulamadı.";
-    } catch (err) {
-        console.error("Groq AI bağlantı hatası:", err);
-        return "Bağlantı sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+
+        container.innerHTML = "";
+
+
+        if (!products?.length) {
+
+            container.innerHTML = `
+                <div class="empty-products">
+                    <p>Henüz öne çıkan ürün bulunmuyor.</p>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        products.forEach(product => {
+
+            container.appendChild(
+                createProductCard(product)
+            );
+
+        });
+
+
+        console.log(
+            `✅ ${products.length} öne çıkan ürün yüklendi.`
+        );
+
+    } catch (error) {
+
+        console.error(
+            "❌ loadFeaturedProducts hatası:",
+            error
+        );
     }
+}
+
+
+/* ==========================================================
+   8. ÜRÜN KARTI
+   ========================================================== */
+
+function createProductCard(product) {
+
+    const card =
+        document.createElement("article");
+
+    card.className =
+        "product-card";
+
+
+    const imageUrl =
+        product.image_url ||
+        "assets/images/logo.jpeg";
+
+
+    const productName =
+        product.name ||
+        product.title ||
+        "Ürün";
+
+
+    const price =
+        product.price !== null &&
+        product.price !== undefined &&
+        product.price !== ""
+            ? `${product.price} TL`
+            : "";
+
+
+    card.innerHTML = `
+        <div class="product-image">
+            <img
+                src="${escapeHtml(imageUrl)}"
+                alt="${escapeHtml(productName)}"
+                loading="lazy"
+            >
+        </div>
+
+        <div class="product-info">
+
+            <h3>
+                ${escapeHtml(productName)}
+            </h3>
+
+            ${
+                price
+                    ? `<div class="product-price">
+                           ${escapeHtml(price)}
+                       </div>`
+                    : ""
+            }
+
+            ${
+                product.category
+                    ? `<div class="product-category">
+                           ${escapeHtml(product.category)}
+                       </div>`
+                    : ""
+            }
+
+        </div>
+    `;
+
+
+    const img =
+        card.querySelector("img");
+
+    if (img) {
+
+        img.onerror = function () {
+
+            if (
+                this.dataset.fallbackApplied === "1"
+            ) {
+                return;
+            }
+
+            this.dataset.fallbackApplied =
+                "1";
+
+            this.src =
+                "assets/images/logo.jpeg";
+        };
+    }
+
+
+    return card;
+}
+
+
+/* ==========================================================
+   9. KATALOG ÜRÜNLERİ
+   ========================================================== */
+
+async function loadCatalogProducts(category) {
+
+    const container =
+        document.querySelector(
+            "#catalogProducts"
+        );
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!window.surClient) {
+
+        container.innerHTML = `
+            <div class="catalog-error">
+                <p>Ürünler şu anda yüklenemiyor.</p>
+                <small>Supabase bağlantısı kurulamadı.</small>
+            </div>
+        `;
+
+        console.error(
+            "❌ Katalog için Supabase yok."
+        );
+
+        return;
+    }
+
+
+    if (!category) {
+
+        container.innerHTML = `
+            <div class="catalog-error">
+                <p>Kategori seçilmedi.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    try {
+
+        container.innerHTML = `
+            <div class="catalog-loading">
+                <p>Ürünler yükleniyor...</p>
+            </div>
+        `;
+
+
+        const { data: products, error } =
+            await window.surClient
+                .from("products")
+                .select("*")
+                .eq("category", category)
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
+
+        if (error) {
+
+            console.error(
+                `❌ "${category}" ürünleri alınamadı:`,
+                error
+            );
+
+
+            container.innerHTML = `
+                <div class="catalog-error">
+                    <p>Ürünler yüklenirken bir hata oluştu.</p>
+                    <small>
+                        ${escapeHtml(
+                            error.message ||
+                            "Supabase hatası"
+                        )}
+                    </small>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        container.innerHTML = "";
+
+
+        if (!products?.length) {
+
+            container.innerHTML = `
+                <div class="empty-products">
+                    <p>
+                        Bu kategoride henüz ürün bulunmuyor.
+                    </p>
+                </div>
+            `;
+
+            console.log(
+                `ℹ️ "${category}" kategorisinde ürün yok.`
+            );
+
+            return;
+        }
+
+
+        products.forEach(product => {
+
+            container.appendChild(
+                createProductCard(product)
+            );
+
+        });
+
+
+        console.log(
+            `✅ "${category}" kategorisinden ${products.length} ürün yüklendi.`
+        );
+
+    } catch (error) {
+
+        console.error(
+            "❌ loadCatalogProducts hatası:",
+            error
+        );
+
+
+        container.innerHTML = `
+            <div class="catalog-error">
+                <p>Ürünler yüklenirken beklenmeyen bir hata oluştu.</p>
+            </div>
+        `;
+    }
+}
+
+
+/* ==========================================================
+   10. KATALOG FİLTRELERİ
+   ========================================================== */
+
+function setupCatalogFilters() {
+
+    const filters =
+        document.querySelectorAll(
+            "[data-category]"
+        );
+
+    const title =
+        document.querySelector(
+            "#catalogTitle"
+        );
+
+    const description =
+        document.querySelector(
+            "#catalogDescription"
+        );
+
+
+    if (!filters.length) {
+
+        console.log(
+            "ℹ️ Katalog filtreleri bu sayfada yok."
+        );
+
+        return;
+    }
+
+
+    /*
+     * URL'deki kategori.
+     *
+     * Örnek:
+     * halilar.html?category=Sisal
+     */
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    const requestedCategory =
+        params.get("category");
+
+
+    /*
+     * Önce URL'deki kategori,
+     * yoksa ilk filtre.
+     */
+
+    let activeFilter = null;
+
+
+    if (requestedCategory) {
+
+        filters.forEach(filter => {
+
+            if (
+                filter.dataset.category ===
+                requestedCategory
+            ) {
+
+                activeFilter = filter;
+            }
+
+        });
+    }
+
+
+    if (!activeFilter) {
+        activeFilter = filters[0];
+    }
+
+
+    function activateFilter(filter) {
+
+        if (!filter) {
+            return;
+        }
+
+
+        filters.forEach(item => {
+
+            item.classList.remove(
+                "active"
+            );
+
+        });
+
+
+        filter.classList.add(
+            "active"
+        );
+
+
+        const category =
+            filter.dataset.category;
+
+
+        /*
+         * BAŞLIK
+         */
+
+        if (title) {
+            title.textContent =
+                category;
+        }
+
+
+        /*
+         * AÇIKLAMA
+         */
+
+        if (description) {
+
+            const descriptions = {
+
+                "Halılar":
+                    "Koleksiyonumuzdaki halıları keşfedin.",
+
+                "Klasik Yolluklar":
+                    "Klasik yolluk koleksiyonumuzu keşfedin.",
+
+                "Sisal":
+                    "Sisal halı koleksiyonumuzu keşfedin.",
+
+                "Kaymaz":
+                    "Kaymaz tabanlı ürünlerimizi keşfedin.",
+
+                "Özel Kesim":
+                    "Özel ölçü ve kesim ürünlerimizi keşfedin."
+            };
+
+
+            description.textContent =
+                descriptions[category] ||
+                "Koleksiyonumuzdaki ürünleri keşfedin.";
+        }
+
+
+        /*
+         * URL'yi güncelle.
+         */
+
+        const newUrl =
+            `${window.location.pathname}?category=${encodeURIComponent(category)}`;
+
+
+        try {
+
+            window.history.replaceState(
+                {},
+                "",
+                newUrl
+            );
+
+        } catch (error) {
+
+            console.warn(
+                "⚠️ URL güncellenemedi:",
+                error
+            );
+        }
+
+
+        /*
+         * Ürünleri getir.
+         */
+
+        loadCatalogProducts(
+            category
+        );
+    }
+
+
+    /*
+     * Tıklamalar
+     */
+
+    filters.forEach(filter => {
+
+        filter.addEventListener(
+            "click",
+            function(event) {
+
+                event.preventDefault();
+
+                activateFilter(this);
+            }
+        );
+
+    });
+
+
+    /*
+     * Sayfa ilk açıldığında
+     * doğru kategoriyi yükle.
+     */
+
+    activateFilter(
+        activeFilter
+    );
+
+
+    console.log(
+        "✅ Katalog sistemi hazır."
+    );
+}
+
+
+/* ==========================================================
+   11. ASİSTAN ÜRÜNLERİ
+   ========================================================== */
+
+async function loadAssistantProducts() {
+
+    if (!window.surClient) {
+        return;
+    }
+
+
+    try {
+
+        const { data, error } =
+            await window.surClient
+                .from("products")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                )
+                .limit(100);
+
+
+        if (error) {
+
+            console.warn(
+                "⚠️ Asistan ürünleri alınamadı:",
+                error
+            );
+
+            return;
+        }
+
+
+        window.surAssistantProducts =
+            data || [];
+
+
+        console.log(
+            `✅ Asistan için ${window.surAssistantProducts.length} ürün hazır.`
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "⚠️ loadAssistantProducts hatası:",
+            error
+        );
+    }
+}
+
+
+/* ==========================================================
+   12. TRY-ON KREDİ SENKRONİZASYONU
+   ========================================================== */
+
+async function syncTryOnCredits() {
+
+    /*
+     * Bu fonksiyon daha önce kullandığın
+     * user_credits sisteminin çökmesini engellemek
+     * için güvenli şekilde çalışır.
+     */
+
+    if (!window.surClient) {
+        return;
+    }
+
+
+    try {
+
+        const {
+            data: {
+                session
+            }
+        } =
+            await window.surClient.auth.getSession();
+
+
+        if (!session?.user) {
+
+            console.log(
+                "ℹ️ Giriş yapılmadığı için kredi senkronizasyonu atlandı."
+            );
+
+            return;
+        }
+
+
+        const userId =
+            session.user.id;
+
+
+        const {
+            data,
+            error
+        } =
+            await window.surClient
+                .from("user_credits")
+                .select("*")
+                .eq(
+                    "user_id",
+                    userId
+                )
+                .maybeSingle();
+
+
+        if (error) {
+
+            console.warn(
+                "⚠️ user_credits okunamadı:",
+                error
+            );
+
+            return;
+        }
+
+
+        window.surUserCredits =
+            data || null;
+
+
+        console.log(
+            "✅ Kullanıcı kredi bilgisi hazır."
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "⚠️ syncTryOnCredits hatası:",
+            error
+        );
+    }
+}
+
+
+/* ==========================================================
+   13. VIRTUAL TRY-ON
+   ========================================================== */
+
+async function invokeVirtualTryOn(
+    roomImage,
+    carpetImage
+) {
+
+    /*
+     * Buradaki fonksiyon, mevcut sistemin
+     * çağırabileceği global fonksiyondur.
+     *
+     * Replicate API anahtarını frontend'e koymuyoruz.
+     */
+
+    console.warn(
+        "⚠️ invokeVirtualTryOn çağrıldı."
+    );
+
+    if (!roomImage || !carpetImage) {
+
+        throw new Error(
+            "Oda ve halı görselleri gerekli."
+        );
+    }
+
+
+    /*
+     * Mevcut backend / Edge Function sistemin varsa
+     * buraya bağlanabilir.
+     *
+     * Frontend'e Replicate secret koyma.
+     */
+
+    throw new Error(
+        "Virtual Try-On backend bağlantısı henüz tanımlı değil."
+    );
+}
+
+
+/* ==========================================================
+   14. ODA ANALİZİ
+   ========================================================== */
+
+async function analyzeRoom(imageFile) {
+
+    if (!imageFile) {
+
+        throw new Error(
+            "Analiz için bir oda görseli gerekli."
+        );
+    }
+
+
+    /*
+     * Burada da gizli API anahtarını
+     * frontend'de kullanmıyoruz.
+     *
+     * Mevcut backend fonksiyonuna bağlanacak.
+     */
+
+    console.warn(
+        "⚠️ analyzeRoom çağrıldı."
+    );
+
+
+    throw new Error(
+        "Oda analiz backend bağlantısı tanımlı değil."
+    );
+}
+
+
+/* ==========================================================
+   15. GROQ AI
+   ========================================================== */
+
+async function askGroqAI(message) {
+
+    if (!message) {
+        return "";
+    }
+
+
+    /*
+     * GÜVENLİK:
+     *
+     * Groq API KEY frontend JS içinde bulunmamalıdır.
+     *
+     * Eski kodda bulunan GROQ API key'i
+     * frontend'den kaldır.
+     *
+     * Burada backend / Edge Function kullanılmalı.
+     */
+
+    console.warn(
+        "⚠️ askGroqAI çağrıldı."
+    );
+
+
+    throw new Error(
+        "AI bağlantısı için güvenli backend/Edge Function gerekli."
+    );
+}
+
+
+/* ==========================================================
+   16. HTML ESCAPE
+   ========================================================== */
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/* ==========================================================
+   17. GLOBAL FONKSİYONLAR
+   ========================================================== */
+
+window.loadCategoryCovers =
+    loadCategoryCovers;
+
+window.loadHeroBackground =
+    loadHeroBackground;
+
+window.loadFeaturedProducts =
+    loadFeaturedProducts;
+
+window.loadCatalogProducts =
+    loadCatalogProducts;
+
+window.setupCatalogFilters =
+    setupCatalogFilters;
+
+window.loadAssistantProducts =
+    loadAssistantProducts;
+
+window.syncTryOnCredits =
+    syncTryOnCredits;
+
+window.invokeVirtualTryOn =
+    invokeVirtualTryOn;
+
+window.analyzeRoom =
+    analyzeRoom;
+
+window.askGroqAI =
+    askGroqAI;
+
+
+/* ==========================================================
+   18. ANA BAŞLATMA
+   ========================================================== */
+
+async function initializeSurHaliSite() {
+
+    console.log(
+        "🔄 Sur Halı site sistemi başlatılıyor..."
+    );
+
+
+    /*
+     * Önce Supabase.
+     */
+
+    initializeSupabase();
+
+
+    /*
+     * Supabase hazırsa verileri yükle.
+     */
+
+    if (window.surClient) {
+
+        await Promise.allSettled([
+
+            loadSiteSettings(),
+
+            loadHeroBackground(),
+
+            loadCategoryCovers(),
+
+            loadFeaturedProducts(),
+
+            loadAssistantProducts(),
+
+            syncTryOnCredits()
+
+        ]);
+
+    }
+
+
+    /*
+     * Katalog sistemi.
+     *
+     * Supabase'den bağımsız olarak başlasın.
+     */
+
+    setupCatalogFilters();
+
+
+    console.log(
+        "=========================================="
+    );
+
+    console.log(
+        "✅ SUR HALI SİTE BAŞLATMA TAMAMLANDI"
+    );
+
+    console.log(
+        "=========================================="
+    );
+}
+
+
+/* ==========================================================
+   19. DOM HAZIR OLDUĞUNDA ÇALIŞTIR
+   ========================================================== */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializeSurHaliSite
+    );
+
+} else {
+
+    initializeSurHaliSite();
 }
