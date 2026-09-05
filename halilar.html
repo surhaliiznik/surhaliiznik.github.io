@@ -6,50 +6,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Halılar | Sur Halı İznik</title>
     <meta name="description" content="Sur Halı İznik halı koleksiyonlarını keşfedin.">
-    
-    <!-- Favicon Tanımı -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-
     <link rel="stylesheet" href="css/site.css">
 </head>
 
 <body>
 
-    <!-- ======================================================
-         HEADER
-         ====================================================== -->
+    <!-- HEADER -->
     <header class="site-header">
         <div class="container header-inner">
             <a href="index.html" class="logo-link">
-                <img src="assets/images/logo.jpeg" alt="Sur Halı İznik" class="site-logo" data-site-logo>
+                <img src="assets/images/logo.jpeg" alt="Sur Halı İznik" class="site-logo" id="siteLogo">
             </a>
 
             <nav class="main-navigation">
                 <a href="index.html">Ana Sayfa</a>
                 <a href="halilar.html" class="active">Halılar</a>
                 <a href="index.html#iletisim">İletişim</a>
+                <!-- Sepet İkonu ve Sayacı -->
+                <button type="button" id="cartToggleBtn" class="cart-btn" style="position: relative; cursor: pointer; background: none; border: none; font-size: 1.1rem;">
+                    🛒 Sepet <span id="cartCount" style="background: red; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.8rem;">0</span>
+                </button>
             </nav>
         </div>
     </header>
 
-    <!-- ======================================================
-         KATALOG
-         ====================================================== -->
+    <!-- KATALOG -->
     <main class="catalog-page">
 
-        <section class="catalog-header">
+        <!-- Banner / Kapak Alanı -->
+        <section class="catalog-header" id="catalogBannerSection">
             <div class="container">
+                <div id="bannerImageContainer" style="margin-bottom: 15px; display: none;">
+                    <img id="categoryBannerImg" src="" alt="Kategori Kapak Görseli" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px;">
+                </div>
                 <h1 id="catalogTitle">Halılar</h1>
                 <p id="catalogDescription">Koleksiyonumuzdaki ürünleri keşfedin.</p>
             </div>
         </section>
 
-        <!-- ==================================================
-             KATEGORİ FİLTRELERİ
-             ================================================== -->
+        <!-- KATEGORİ FİLTRELERİ -->
         <section class="catalog-filters-section">
             <div class="container">
                 <div class="category-filters" role="tablist" aria-label="Halı kategorileri">
+                    <button type="button" class="category-filter active" data-category="Tümü">Tüm Halılar</button>
                     <button type="button" class="category-filter" data-category="Halılar">Halılar</button>
                     <button type="button" class="category-filter" data-category="Klasik Yolluklar">Klasik Yolluklar</button>
                     <button type="button" class="category-filter" data-category="Sisal">Sisal</button>
@@ -59,12 +59,9 @@
             </div>
         </section>
 
-        <!-- ==================================================
-             ÜRÜNLER
-             ================================================== -->
+        <!-- ÜRÜNLER GRID -->
         <section class="catalog-products-section">
             <div class="container">
-                <!-- ID UYUMSUZLUĞU DÜZELTİLDİ: JavaScript ile eşleşecek şekilde update edildi -->
                 <div id="catalog-products-container" class="products-grid">
                     <div class="catalog-loading">
                         <p>Ürünler yükleniyor...</p>
@@ -75,20 +72,43 @@
 
     </main>
 
-    <!-- ======================================================
-         FOOTER
-         ====================================================== -->
+    <!-- ÜRÜN DETAY MODAL (POP-UP) -->
+    <div id="productModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#fff; padding:20px; border-radius:10px; max-width:500px; width:90%; position:relative; max-height:90vh; overflow-y:auto;">
+            <button id="closeModalBtn" style="position:absolute; right:15px; top:10px; font-size:24px; border:none; background:none; cursor:pointer;">&times;</button>
+            <img id="modalProductImg" src="" alt="" style="width:100%; max-height:300px; object-fit:contain; border-radius:6px;">
+            <h2 id="modalProductTitle" style="margin-top:15px; font-size:1.4rem;"></h2>
+            <p id="modalProductCategory" style="color:#666; font-size:0.9rem; margin-bottom:10px;"></p>
+            <p id="modalProductDescription" style="margin-bottom:15px; line-height:1.5;"></p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+                <span id="modalProductPrice" style="font-size:1.3rem; font-weight:bold; color:#e67e22;"></span>
+                <button id="modalAddToCartBtn" style="background:#27ae60; color:#fff; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Sepete Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEPET MODAL (POP-UP) -->
+    <div id="cartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#fff; padding:20px; border-radius:10px; max-width:500px; width:90%; position:relative; max-height:90vh; overflow-y:auto;">
+            <button id="closeCartModalBtn" style="position:absolute; right:15px; top:10px; font-size:24px; border:none; background:none; cursor:pointer;">&times;</button>
+            <h3>Sepetiniz</h3>
+            <div id="cartItemsContainer" style="margin-top:15px;"></div>
+            <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:10px; text-align:right;">
+                <button id="clearCartBtn" style="background:#e74c3c; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Sepeti Temizle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
     <footer class="site-footer">
         <div class="container">
             <p>© 2026 Sur Halı İznik. Tüm hakları saklıdır.</p>
         </div>
     </footer>
 
-    <!-- ======================================================
-         SUPABASE CDN VE ANA JAVASCRIPT
-         ====================================================== -->
+    <!-- SUPABASE VE SITE JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/site.js?v=2001"></script>
+    <script src="js/site.js?v=2002"></script>
 
 </body>
 
