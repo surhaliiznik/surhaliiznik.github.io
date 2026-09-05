@@ -1,4 +1,4 @@
-/* SUR HALI - KESİN GÖRSEL VE KATEGORİ EŞLEŞTİRME KODU */
+/* SUR HALI - KESİN KATEGORİ VE RESİM EŞLEŞTİRME KODU */
 
 if (typeof SUR_SUPABASE_URL === 'undefined') {
     var SUR_SUPABASE_URL = "https://lhltolrtgnfkbwfkpaex.supabase.co";
@@ -58,15 +58,16 @@ async function loadCategoryBanner(category) {
     }
 
     try {
+        // Öncelikli olarak category_covers tablosuna bakıyoruz
         var res = await window.surClient
-            .from("category_images")
+            .from("category_covers")
             .select("*")
             .ilike("category", category)
             .maybeSingle();
 
         if (!res.data) {
             res = await window.surClient
-                .from("category_covers")
+                .from("category_images")
                 .select("*")
                 .ilike("category", category)
                 .maybeSingle();
@@ -143,7 +144,6 @@ function renderProducts(products, container) {
 
     products.forEach(function (product) {
         var title = product.title || product.name || product.product_name || "Halı Modeli";
-        // Doğrudan Supabase'deki image_url sütununu alır
         var image = product.image_url || product.image_path || product.image || "assets/images/logo.jpeg";
         var price = product.price ? product.price + " TL" : "Fiyat Sorunuz";
         var category = product.category || "";
