@@ -250,21 +250,18 @@ async function loadSiteSettings() {
 
 async function loadHeroBackground() {
 
-    constheroSection.style.backgroundImage =
-    'url("' + heroUrl + '")';
+    const heroSection =
+        document.querySelector(".hero-section");
 
-    const heroMedia.style.backgroundImage =
-    'url("' + heroUrl + '")';
-
+    const heroMedia =
+        document.querySelector("[data-hero-media]");
 
     if (!heroSection) {
         return;
     }
 
-
     let heroUrl =
         "assets/images/hero-bg.jpg";
-
 
     if (window.surClient) {
 
@@ -277,7 +274,6 @@ async function loadHeroBackground() {
                 .from("site_settings")
                 .select("hero_bg_url")
                 .limit(1);
-
 
             if (
                 !error &&
@@ -297,14 +293,12 @@ async function loadHeroBackground() {
         }
     }
 
-
     if (!heroUrl) {
         return;
     }
 
-
     heroSection.style.backgroundImage =
-        `url("${heroUrl}")`;
+        'url("' + heroUrl + '")';
 
     heroSection.style.backgroundSize =
         "cover";
@@ -315,11 +309,10 @@ async function loadHeroBackground() {
     heroSection.style.backgroundRepeat =
         "no-repeat";
 
-
     if (heroMedia) {
 
         heroMedia.style.backgroundImage =
-            `url("${heroUrl}")`;
+            'url("' + heroUrl + '")';
 
         heroMedia.style.backgroundSize =
             "cover";
@@ -331,12 +324,10 @@ async function loadHeroBackground() {
             "no-repeat";
     }
 
-
     console.log(
         "✅ Hero yüklendi."
     );
 }
-
 
 /* ==========================================================
    5. KATEGORİ KAPAKLARI
